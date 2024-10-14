@@ -1,6 +1,6 @@
 import { getFrameworkID, requestLocale, sendNUIEvent, triggerServerCallback, updatePed, ped, getPlayerData, getJobInfo, getPlayerGenderModel } from "@utils"
 import { startCamera, stopCamera } from "./camera"
-import type { TAppearanceZone } from "@typings/appearance"
+import type { TAppearanceZone, TMenuTypes } from "@typings/appearance"
 import { Outfit } from "@typings/outfits"
 import { Send } from "@events"
 import { getAppearance, getTattooData } from "./appearance/getters"
@@ -14,21 +14,21 @@ let open = false
 let resolvePromise = null;
 let promise = null;
 
-export async function openMenu(zone: TAppearanceZone, creation: boolean = false) {
+export async function openMenu(zone: TAppearanceZone | TAppearanceZone['type'], creation: boolean = false) {
     if (zone === null || open) {
         return;
     }
 
-    const pedHandle = PlayerPedId()
+    let pedHandle = PlayerPedId()
     const configMenus = config.menus()
+    const isString = typeof zone === 'string'
 
-    const type = zone.type
+    const type = isString ? zone : zone.type
 
     const menu = configMenus[type]
     if (!menu) return
 
     updatePed(pedHandle)
-    startCamera()
 
     const frameworkdId = getFrameworkID()
     const tabs = menu.tabs
@@ -36,37 +36,26 @@ export async function openMenu(zone: TAppearanceZone, creation: boolean = false)
 
     armour = GetPedArmour(pedHandle)
 
-    let outfits = []
-
-    const hasOutfitTab = tabs.includes('outfits')
-    if (hasOutfitTab) outfits = await triggerServerCallback<Outfit[]>('bl_appearance:server:getOutfits', frameworkdId) as Outfit[]
-
-    let models = []
-
-    const hasHeritageTab = tabs.includes('heritage')
-    if (hasHeritageTab) {
-        models = config.models()
-    }
-
-    const hasTattooTab = tabs.includes('tattoos')
-    let tattoos
-    if (hasTattooTab) {
-        tattoos = getTattooData()
-    }
-
+    const outfits = tabs.includes('outfits') && await triggerServerCallback<Outfit[]>('bl_appearance:server:getOutfits', frameworkdId) as Outfit[]
+    const models = tabs.includes('heritage') && getAllowlist(config.models())
+    const tattoos = tabs.includes('tattoos') && getTattooData()
     const blacklist = getBlacklist(zone)
-
-    const appearance = await getAppearance(pedHandle)
 
     if (creation) {
         const model = GetHashKey(getPlayerGenderModel());
-        await setModel(model);
-        appearance.model = model;
+        pedHandle = await setModel(pedHandle, model);
         emitNet('bl_appearance:server:setroutingbucket')
         promise = new Promise(resolve => {
             resolvePromise = resolve;
         });
+
+        updatePed(pedHandle)
     }
+
+    const appearance = await getAppearance(pedHandle)
+
+    startCamera()
+
 
     sendNUIEvent(Send.data, {
         tabs,
@@ -79,8 +68,10 @@ export async function openMenu(zone: TAppearanceZone, creation: boolean = false)
         job: getJobInfo(),
         locale: await requestLocale('locale')
     })
+
     SetNuiFocus(true, true)
     sendNUIEvent(Send.visible, true)
+
     open = true
 
     exports.bl_appearance.hideHud(true)
@@ -94,16 +85,29 @@ export async function openMenu(zone: TAppearanceZone, creation: boolean = false)
     resolvePromise = null;
     return true
 }
+exports('OpenMenu', openMenu)
 
-exports('openMenu', openMenu)
+function getAllowlist(models: string[]) {
+    const { allowList } = config.blacklist();
+    const playerData = getPlayerData();
+    const allowlistModels: string[] = allowList.characters[playerData.cid];
+    if (!allowlistModels) return models
 
-function getBlacklist(zone: TAppearanceZone) {
-    if (!zone) return {}
+    models.forEach(model => {
+        if (!allowlistModels.includes(model)) {
+            allowlistModels.push(model);
+        }
+    });
 
+    return allowlistModels
+}
+
+function getBlacklist(zone: TAppearanceZone | string) {
     const {groupTypes, base} = config.blacklist()
 
-    if (!groupTypes) return {}
-    if (!base) return {}
+    if (typeof zone === 'string') return base
+
+    if (!groupTypes) return base
 
     let blacklist = {...base}
 
@@ -123,10 +127,6 @@ function getBlacklist(zone: TAppearanceZone) {
             if (type == 'gangs' && zone.gangs) {
                 skip = zone.gangs.includes(playerData.gang.name)
             }
-
-            // if (type == 'groups' && zone.groups) {
-            //     skip = !zone.groups.includes(playerData.group.name)
-            // }
 
             if (!skip) {
                 const groupBlacklist = groups[group]

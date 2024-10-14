@@ -100,6 +100,7 @@ export type TTattooEntry = {
     label: string
     hash: number
     zone: number
+	opacity: number
     dlc?: string
 }
 
@@ -120,6 +121,7 @@ export type TTattoo = {
     zoneIndex: number
     dlcIndex: number
     tattoo: TTattooEntry
+	opacity: number
     id: number
 }
 
@@ -139,7 +141,6 @@ export type TAppearance = {
 }
 
 export type TOutfitData  = {
-    headOverlay: THeadOverlay | TEyeColor
     drawables: TDrawables
     props: TProps
 }

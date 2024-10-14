@@ -1,29 +1,25 @@
-import { TAppearance, TAppearanceZone } from "@typings/appearance"
+import { TAppearance, TAppearanceZone, TMenuTypes } from "@typings/appearance"
 import { openMenu } from "./menu"
-import { setPedAppearance, setPlayerPedAppearance } from "./appearance/setters"
-import { triggerServerCallback, getFrameworkID, Delay, bl_bridge, ped, delay, format } from "@utils"
+import { setPlayerPedAppearance } from "./appearance/setters"
+import { triggerServerCallback, getFrameworkID, Delay, bl_bridge, ped, delay, format, updatePed } from "@utils"
 import { QBBridge } from "./bridge/qb"
 import { ESXBridge } from "./bridge/esx"
 import { illeniumCompat } from "./compat/illenium"
 
-RegisterCommand('openMenu', async () => {
-    exports.bl_appearance.InitialCreation()
-}, false)
-
-exports('SetPedAppearance', async (ped: number, appearance: TAppearance) => {
-    await setPedAppearance(ped, appearance)
-})
-
-exports('SetPlayerPedAppearance', async (appearance: TAppearance = null) => {
-    if (!appearance) {
-        const frameworkID = await getFrameworkID()
-        appearance = await triggerServerCallback<TAppearance>('bl_appearance:server:getAppearance', frameworkID) as TAppearance
+exports('SetPlayerPedAppearance', async (appearance: TAppearance | string) => {
+    let resolvedAppearance: TAppearance;
+    
+    if (!appearance || typeof appearance === 'string') {
+        const frameworkID: string = appearance || await getFrameworkID();
+        resolvedAppearance = await triggerServerCallback<TAppearance>('bl_appearance:server:getAppearance', frameworkID) as TAppearance;
+    } else if (typeof appearance === 'object') resolvedAppearance = appearance;
+    
+    if (!resolvedAppearance) {
+        throw new Error('No valid appearance found');
     }
-    if (!appearance) {
-        throw new Error('No appearance found')
-    }
-    await setPlayerPedAppearance(appearance)
-})
+    
+    await setPlayerPedAppearance(resolvedAppearance);
+});
 
 exports('GetPlayerPedAppearance', async (frameworkID: string) => {
     frameworkID = frameworkID || await getFrameworkID()
@@ -36,7 +32,11 @@ exports('InitialCreation', async (cb?: Function) => {
     if (cb) cb()
 })
 
-on('bl_sprites:client:useZone', (zone: TAppearanceZone) => {
+on('bl_appearance:client:useZone', (zone: TAppearanceZone) => {
+    openMenu(zone)
+})
+
+onNet('bl_appearance:client:open', (zone: TMenuTypes) => {
     openMenu(zone)
 })
 
@@ -70,8 +70,8 @@ if (core == 'qb' || core == 'qbx' && GetResourceState(frameworkName) == 'started
 
 illeniumCompat();
 
-RegisterCommand('reloadskin', async () => {
-    const frameworkID = await getFrameworkID()
+async function reloadSkin() {
+    const frameworkID = await getFrameworkID();
     const health = GetEntityHealth(ped);
     const maxhealth = GetEntityMaxHealth(ped);
     const armor = GetPedArmour(ped);
@@ -81,7 +81,14 @@ RegisterCommand('reloadskin', async () => {
     await setPlayerPedAppearance(appearance)
 
     SetPedMaxHealth(ped, maxhealth)
-    delay(1000) 
+
+    await delay(1000) 
+
     SetEntityHealth(ped, health)
     SetPedArmour(ped, armor)
-}, false)
+    SetPlayerHealthRechargeMultiplier(ped, 0.0);
+    SetPlayerHealthRechargeLimit(ped, 0.0);
+}
+
+onNet('bl_appearance:client:reloadSkin', async () => reloadSkin)
+RegisterCommand('reloadskin', async () => reloadSkin, false)

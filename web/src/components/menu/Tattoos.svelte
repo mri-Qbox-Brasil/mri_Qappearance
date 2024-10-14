@@ -1,18 +1,17 @@
 <script lang="ts">
     import { APPEARANCE, TATTOOS, LOCALE } from '@stores/appearance';
-    import { Send } from '@enums/events';
-    import type { TDLCTattoo, TTattooEntry } from '@typings/apperance';
+    import type { TDLCTattoo, TTattooEntry, TTattoo } from '@typings/apperance';
     import Wrapper from '@components/micro/Wrapper.svelte';
     import IconPlus from '@components/icons/IconPlus.svelte';
     import Stepper from '@components/micro/Stepper.svelte';
     import { slide } from 'svelte/transition';
     import Dropdown from '@components/micro/Dropdown.svelte';
     import Divider from '@components/micro/Divider.svelte';
+    import Slider from '@components/micro/Slider.svelte';
     import IconCancel from '@components/icons/IconCancel.svelte';
     import { randomID } from '@utils/misc';
-    import { SendEvent } from '@utils/eventsHandlers';
 
-    let deleteOptionIndex: number = null;
+    let deleteOptionIndex: number | null = null;
 
     $: options = $TATTOOS || [];
 
@@ -56,24 +55,18 @@
     }
 
     function addTattooRow() {
-        const newTattoo = {
-            zoneIndex: 0,
-            dlcIndex: 0,
-            tattoo: null,
-            id: randomID(),
-        };
-        // get the first valid tattoo in the list
-        // get dlc with tattoos
         const dlcWithTattoos = options[0].dlcs.findIndex(
             dlc => dlc.tattoos.length > 0,
         );
+        if (dlcWithTattoos === -1) return
 
-        if (dlcWithTattoos !== -1) {
-            newTattoo.dlcIndex = dlcWithTattoos;
-            newTattoo.tattoo = options[0].dlcs[dlcWithTattoos].tattoos[0];
-        }
-
-        playerTattoos = [...playerTattoos, newTattoo];
+        playerTattoos = [...playerTattoos, {
+            zoneIndex: 0,
+            dlcIndex: dlcWithTattoos !== -1 ? dlcWithTattoos : 0,
+            tattoo: options[0].dlcs[dlcWithTattoos].tattoos[0],
+            opacity: 0.1,
+            id: randomID(),
+        }];
 
         TATTOOS.setPlayerTattoos(playerTattoos);
     }
@@ -86,16 +79,14 @@
     }
 
     function changeZoneIndex(playerTattoosIndex: number, newZoneIndex: number) {
-        playerTattoos[playerTattoosIndex].zoneIndex = newZoneIndex;
-        playerTattoos[playerTattoosIndex].dlcIndex = 0;
+        let playerTattoo = playerTattoos[playerTattoosIndex];
+        playerTattoo.zoneIndex = newZoneIndex;
+        playerTattoo.dlcIndex = 0;
         
         const dlcTattoos = options[newZoneIndex].dlcs[0]?.tattoos;
 
-        if (dlcTattoos?.length > 0) {
-            playerTattoos[playerTattoosIndex].tattoo = dlcTattoos[0];
-        } else {
-            playerTattoos[playerTattoosIndex].tattoo = null;
-        }
+        if (dlcTattoos?.length) playerTattoo.tattoo = dlcTattoos[0]
+        playerTattoo.opacity = 0.1;
 
         TATTOOS.setPlayerTattoos(playerTattoos);
     }
@@ -104,15 +95,12 @@
         let playerTattoo = playerTattoos[playerTattoosIndex];
         let { zoneIndex } = playerTattoo;
 
-        playerTattoos[playerTattoosIndex].dlcIndex = newDLCIndex;
+        playerTattoo.dlcIndex = newDLCIndex;
 
         const dlcTattoos = options[zoneIndex].dlcs[newDLCIndex]?.tattoos;
 
-        if (dlcTattoos?.length > 0) {
-            playerTattoos[playerTattoosIndex].tattoo = dlcTattoos[0];
-        } else {
-            playerTattoos[playerTattoosIndex].tattoo = null;
-        }
+        if (dlcTattoos?.length) playerTattoo.tattoo = dlcTattoos[0]
+        playerTattoo.opacity = 0.1;
 
         TATTOOS.setPlayerTattoos(playerTattoos);
     }
@@ -124,8 +112,18 @@
         const tattoo = options[zoneIndex].dlcs[dlcIndex].tattoos[index];
         if (!tattoo) return;
 
-        playerTattoos[playerTattoosIndex].tattoo = tattoo;
+        playerTattoo.tattoo = tattoo;
+        playerTattoo.opacity = 0.1;
 
+        TATTOOS.setPlayerTattoos(playerTattoos);
+    }
+
+    function changeOpacity(playerTattoosIndex: number, opacity: number) {
+        let playerTattoo = playerTattoos[playerTattoosIndex]
+
+        if (!playerTattoo) return;
+
+        playerTattoo.opacity = opacity
         TATTOOS.setPlayerTattoos(playerTattoos);
     }
 </script>
@@ -220,7 +218,7 @@
 
                         <div
                             transition:slide
-                            class="flex flex-col items-center justify-center w-full"
+                            class="flex flex-col items-center justify-center w-full mt-2"
                         >
                             <Dropdown
                                 on:click={() => {
@@ -250,6 +248,26 @@
                                 {/each}
                             </Dropdown>
                         </div>
+
+                        <div
+                        transition:slide
+                        class="flex flex-col items-center justify-center w-full mt-2"
+                    >
+                        <span
+                            class="opacity-75 w-full flex items-center justify-between gap-[0.5vh]"
+                        >
+                        <p>{$LOCALE.TATTOO_OPACITY}</p>
+                        </span>
+                        <Slider
+                            bind:value={tattoo.opacity}
+                            min={0.1}
+                            max={1.0}
+                            step={0.1}
+                            on:change={({ detail: opacity }) => {
+                                changeOpacity(i, opacity)
+                            }}
+                        />
+                    </div>
                     {/if}
                 </svelte:fragment>
 
@@ -270,6 +288,7 @@
                                     class="btn w-full h-full"
                                     on:click={() => {
                                         setTimeout(() => {
+                                            if (!deleteOptionIndex) return
                                             removeTattooRow(deleteOptionIndex);
                                         }, 500);
                                     }}>{$LOCALE.CONFIRMREM_SUBTITLE}</button
