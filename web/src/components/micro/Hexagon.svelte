@@ -8,7 +8,7 @@
     export let scale: string = '1';
     export let active: boolean = false;
     export let disabled: boolean = false;
-    export let strokeWidth: string = '0.5vh';
+    export let strokeWidth: string = '0.2vh';
     export let variant: 'accent' | 'success' | 'error' = 'accent';
 
     // CSS variable for the variant
@@ -43,17 +43,19 @@
     class="origin-center transition-all duration-200 {active ? fill : transparentFill}"
     xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink"
-    viewBox="0 0 184.751 184.751"
+    viewBox="0 0 100 100"
     xml:space="preserve"
     on:click={() => dispatch('click')}
 >
     <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
     <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
     <g id="SVGRepo_iconCarrier">
-        <path
+        <circle
+            cx="50"
+            cy="50"
+            r="40"
             stroke={cssVar}
             stroke-width={active || disabled ? '0' : strokeWidth}
-            d="M0,92.375l46.188-80h92.378l46.185,80l-46.185,80H46.188L0,92.375z"
         />
     </g>
 </svg>

@@ -67,7 +67,7 @@
             on:click={() => setLevel('up')}
             class="w-full active:scale-95 h-full grid place-items-center hover:scale-105 duration-150 cursor-pointer"
         >
-            <Hexagon active={false} strokeWidth="1vh" />
+            <Hexagon active={false} strokeWidth="0.4vh" />
             <div class="w-[2vh] h-fit absolute grid place-items-center">
                 <IconCaretUp />
             </div>
@@ -103,7 +103,7 @@
             on:click={() => setLevel('down')}
             class="w-full overflow-hidden active:scale-95 h-full grid place-items-center hover:scale-105 duration-150 cursor-pointer"
         >
-            <Hexagon active={false} strokeWidth="1vh" />
+            <Hexagon active={false} strokeWidth="0.4vh" />
             <div class="w-[2vh] h-fit absolute grid place-items-center">
                 <IconCaretDown />
             </div>

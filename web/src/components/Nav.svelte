@@ -193,7 +193,7 @@
             <div
                 class="w-full h-full grid place-items-center hover:scale-105 duration-150"
             >
-                <Hexagon active={false} variant="error" strokeWidth="1vh" />
+                <Hexagon active={false} variant="error" strokeWidth="0.4vh" />
                 <div class="w-[2vh] h-full absolute grid place-items-center">
                     <IconCancel />
                 </div>
@@ -230,7 +230,7 @@
         <div
             class="w-full h-full grid place-items-center origin-center hover:scale-105 duration-150"
         >
-            <Hexagon active={showToggles} strokeWidth="1vh" />
+            <Hexagon active={showToggles} strokeWidth="0.4vh" />
             <div
                 class="w-full h-fit grid absolute place-items-center fill-white"
             >
