@@ -1,0 +1,17 @@
+# Build artifacts não versionados.
+node_modules/
+web/node_modules/
+.release/node_modules/
+
+# Semantic-release outputs (gerados na CI).
+.VERSION
+.NOTES.md
+mri_Qappearance.zip
+public_repo/
+
+# Editores
+.vscode/
+.idea/
+
+# Logs/temp
+*.log
