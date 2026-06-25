@@ -4,7 +4,7 @@ game "gta5"
 author "snakewiz & iLLeniumStudios"
 description "A flexible player customization script for FiveM servers."
 repository "https://github.com/iLLeniumStudios/illenium-appearance"
-version "v1.0.0"
+version "v1.1.0"
 
 lua54 "yes"
 
@@ -86,7 +86,8 @@ shared_scripts {
 }
 
 files {
-  "html/**/*"
+  "html/**/*",
+  "shared/images.json"
 }
 
 ui_page "html/index.html"
