@@ -631,6 +631,11 @@ function client.startPlayerCustomization(cb, conf)
 
     if Config.HideRadar then DisplayRadar(false) end
 
+    -- Esconde a HUD (mri_Qhud) enquanto o player edita aparência/roupa/barbearia.
+    -- Statebag do player: o mri_Qhud escuta 'hideHud' e some/volta sozinho. Se a
+    -- HUD não estiver rodando, é inofensivo (ninguém escuta).
+    LocalPlayer.state:set("hideHud", true, false)
+
     SendNuiMessage(json.encode({
         type = "appearance_display",
         payload = {
@@ -646,6 +651,9 @@ function client.exitPlayerCustomization(appearance)
     SetNuiFocus(false, false)
 
     if Config.HideRadar then DisplayRadar(true) end
+
+    -- Restaura a HUD (mri_Qhud) ao sair da edição.
+    LocalPlayer.state:set("hideHud", false, false)
 
     stopCustomizationAnim()
     ClearPedTasksImmediately(cache.ped)
@@ -683,6 +691,8 @@ AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
         SetNuiFocus(false, false)
         SetNuiFocusKeepInput(false)
+        -- Nao deixa a HUD presa escondida se o appearance parar no meio da edicao.
+        LocalPlayer.state:set("hideHud", false, false)
     end
 end)
 
