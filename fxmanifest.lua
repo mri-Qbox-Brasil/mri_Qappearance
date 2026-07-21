@@ -1,10 +1,11 @@
+-- CI: valida pipeline (mirror via callable)
 fx_version "cerulean"
 game "gta5"
 
 author "snakewiz & iLLeniumStudios"
 description "A flexible player customization script for FiveM servers."
 repository "https://github.com/iLLeniumStudios/illenium-appearance"
-version "v1.3.0"
+version '1.3.1'
 
 lua54 "yes"
 
