@@ -1,15 +1,15 @@
--- CI: valida pipeline (mirror via callable)
 fx_version "cerulean"
 game "gta5"
 
 author "snakewiz & iLLeniumStudios"
 description "A flexible player customization script for FiveM servers."
 repository "https://github.com/iLLeniumStudios/illenium-appearance"
-version '1.3.1'
+version '1.4.0'
 
 lua54 "yes"
 
 client_scripts {
+  "game/exportalias.lua",
   "game/constants.lua",
   "game/util.lua",
   "game/customization.lua",
@@ -43,6 +43,7 @@ client_scripts {
 
 server_scripts {
   "@oxmysql/lib/MySQL.lua",
+  "game/exportalias.lua",
   "server/database/database.lua",
   "server/database/jobgrades.lua",
   "server/database/managementoutfits.lua",
