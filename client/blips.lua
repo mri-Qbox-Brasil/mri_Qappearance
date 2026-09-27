@@ -15,14 +15,15 @@ local function ShowBlip(blipConfig, blip)
     return (blipConfig.Show and blip.showBlip == nil) or blip.showBlip
 end
 
-local function CreateBlip(blipConfig, coords)
+local function CreateBlip(blipConfig, coords, name)
     local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
     SetBlipSprite(blip, blipConfig.Sprite)
     SetBlipColour(blip, blipConfig.Color)
     SetBlipScale(blip, blipConfig.Scale)
     SetBlipAsShortRange(blip, true)
     BeginTextCommandSetBlipName("STRING")
-    AddTextComponentString(blipConfig.Name)
+    -- Nome da loja (painel) ou o do tipo.
+    AddTextComponentString(name or blipConfig.Name)
     EndTextCommandSetBlipName(blip)
     return blip
 end
@@ -31,7 +32,7 @@ local function SetupBlips()
     for k, _ in pairs(Config.Stores) do
         local blipConfig = Config.Blips[Config.Stores[k].type]
         if ShowBlip(blipConfig, Config.Stores[k]) then
-            local blip = CreateBlip(blipConfig, Config.Stores[k].coords)
+            local blip = CreateBlip(blipConfig, Config.Stores[k].coords, Config.Stores[k].label)
             Blips[#Blips + 1] = blip
         end
     end

@@ -91,6 +91,19 @@ local function SetupStoreTarget(targetConfig, action, k, v)
     end
 end
 
+-- Lojas editadas pelo painel (client/stores.lua): tira os alvos da lista velha
+-- e cria os da nova, sem restart.
+function RemoveStoreTargets()
+    if Config.EnablePedsForShops then
+        RemoveTargetPeds(TargetPeds.Store)
+        TargetPeds.Store = {}
+    else
+        for k, v in pairs(Config.Stores) do
+            Target.RemoveZone(v.type .. k)
+        end
+    end
+end
+
 local function SetupStoreTargets()
     for k, v in pairs(Config.Stores) do
         local targetConfig = Config.TargetConfig[v.type]
@@ -178,6 +191,8 @@ local function SetupPlayerOutfitRoomTargets()
         end
     end
 end
+
+SetupStoreTargetsNow = SetupStoreTargets
 
 local function SetupTargets()
     SetupStoreTargets()

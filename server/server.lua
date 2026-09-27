@@ -362,4 +362,4 @@ AddConvarChangeListener('mri:color', function(name)
     TriggerClientEvent('mri_Qappearance:accentColorChanged', -1, color)
 end)
 
-lib.versionCheck("iLLeniumStudios/illenium-appearance")
+lib.versionCheck("mri-Qbox-Brasil/mri_Qappearance")

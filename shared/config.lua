@@ -46,6 +46,7 @@ Config.EnableJobOutfitsCommand = true -- Enables /joboutfits and /gangoutfits co
 
 Config.ShowNearestShopOnly = true
 Config.HideRadar = false -- Hides the minimap while the appearance menu is open
+Config.UISounds = true -- Sons do GTA ao navegar/trocar/confirmar no menu (game/sounds.lua)
 Config.NearestShopBlipUpdateDelay = 10000
 
 Config.InvincibleDuringCustomization = true
@@ -181,6 +182,8 @@ Config.TargetConfig = {
     },
 }
 
+-- Só vale na primeira vez que o servidor sobe: vira o stores.json, e daí em
+-- diante as lojas são editadas no painel (/adminappearance, aba Lojas). Ver STORES.md.
 Config.Stores = {
     {
         type = "clothing",

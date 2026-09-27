@@ -213,15 +213,16 @@ end)
 local targetFov = nil
 local fovThreadActive = false
 
-RegisterNUICallback("appearance_zoom_absolute", function(zoomValue, cb)
-    cb(1)
+local function zoomToFov(zoomValue)
+    return math.max(10.0, math.min(70.0, 40.0 - ((tonumber(zoomValue) or 0.0) * 3.0)))
+end
+
+local function setZoom(zoomValue)
     if not client.isCameraInterpolating() then
         local cam = client.getCameraHandle()
         if cam then
-            local val = tonumber(zoomValue) or 0.0
-            local fov = 40.0 - (val * 3.0)
-            targetFov = math.max(10.0, math.min(70.0, fov))
-            
+            targetFov = zoomToFov(zoomValue)
+
             if not fovThreadActive then
                 fovThreadActive = true
                 CreateThread(function()
@@ -241,6 +242,11 @@ RegisterNUICallback("appearance_zoom_absolute", function(zoomValue, cb)
             end
         end
     end
+end
+
+RegisterNUICallback("appearance_zoom_absolute", function(zoomValue, cb)
+    cb(1)
+    setZoom(zoomValue)
 end)
 
 RegisterNUICallback("appearance_change_model", function(model, cb)
@@ -256,13 +262,20 @@ RegisterNUICallback("appearance_change_model", function(model, cb)
     })
 end)
 
+-- O menu trabalha com o número global da peça. A coleção que veio junto é da
+-- peça anterior (o menu copia o objeto e só troca o drawable): descarta.
+local function fromMenu(item)
+    item.collection, item.localDrawable, item.localStyle = nil, nil, nil
+    return item
+end
+
 RegisterNUICallback("appearance_change_component", function(component, cb)
-    client.setPedComponent(cache.ped, component)
+    client.setPedComponent(cache.ped, fromMenu(component))
     cb(client.getComponentSettings(cache.ped, component.component_id))
 end)
 
 RegisterNUICallback("appearance_change_prop", function(prop, cb)
-    client.setPedProp(cache.ped, prop)
+    client.setPedProp(cache.ped, fromMenu(prop))
     cb(client.getPropSettings(cache.ped, prop.prop_id))
 end)
 
@@ -282,7 +295,7 @@ RegisterNUICallback("appearance_change_head_overlay", function(headOverlays, cb)
 end)
 
 RegisterNUICallback("appearance_change_hair", function(hair, cb)
-    client.setPedHair(cache.ped, hair)
+    client.setPedHair(cache.ped, fromMenu(hair))
     cb(client.getHairSettings(cache.ped))
 end)
 
@@ -324,6 +337,8 @@ RegisterNUICallback("appearance_save", function(appearance, cb)
     client.wearClothes(appearance, "head")
     client.wearClothes(appearance, "body")
     client.wearClothes(appearance, "bottom")
+    -- Coleção + número local de cada peça, a partir do número global do menu.
+    client.withCollections(cache.ped, appearance)
     client.exitPlayerCustomization(appearance)
 end)
 

@@ -33,6 +33,7 @@ Editou o `images.json`? Basta dar **restart no resource** — não precisa rebui
   "ImageUrl": "https://assets.mriqbox.com.br/",
   "Layout": "default",
   "ImageExt": "",
+  "StudioUrl": "",
   "ImageSources": {
     "peds": "peds/",
     "heritage": "parents/",
@@ -50,6 +51,7 @@ Editou o `images.json`? Basta dar **restart no resource** — não precisa rebui
 | `ImageLocal` | `url` \| `pasta` | `url` = imagens remotas (ext `webp`). `pasta` = imagens locais (ext `png`). Só afeta a extensão quando `ImageExt` está vazio. |
 | `Layout` | `default` \| `autoshot` | Formato do nome do arquivo. Veja seção 3. |
 | `ImageExt` | `""` \| `png` \| `webp` \| `jpg` | Força a extensão. Vazio = resolve sozinho (`autoshot`→`png`, senão depende de `ImageLocal`). |
+| `StudioUrl` | `""` \| `off` \| URL | Fotos geradas pelo estúdio (`/adminappearance`). Vazio = o próprio servidor; `off` = não usa; URL = outro endereço, que precisa ser HTTPS (a NUI não carrega `http://`). Veja a seção 5. |
 | `ImageSources` | mapa de subpastas | Subpasta por categoria. **Só usado no layout `default`** (no `autoshot` a pasta é o próprio `componentId`). |
 
 Chaves de `ImageSources` realmente consumidas: `clothes` (roupas), `accessories`
@@ -123,6 +125,10 @@ cor). O que muda entre os layouts é o **prefixo**.
   (só a textura 0). Nesse caso o grid de *drawables* funciona, mas o grid de
   *texturas* fica sem imagem. Para ter todas as variações de cor, gere com
   `CaptureAllTextures = true` no `Customize.lua` do uz_AutoShot.
+- **Fotos do estúdio têm prioridade.** Peça que foi fotografada pelo
+  `/adminappearance` (ou pela aba Aparência do mri_Qadmin) usa a foto gerada;
+  se ela não carregar, a grade tenta a URL do CDN e só então o número da peça.
+  As fotos são por drawable: o grid de *texturas* segue no CDN. Ver `STUDIO.md`.
 - **Modo `pasta` (imagens locais):** as imagens precisam estar acessíveis pela NUI,
   ou seja, dentro do resource e adicionadas ao `files{}` do `fxmanifest.lua`.
 

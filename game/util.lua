@@ -31,6 +31,78 @@ local function getPedModel(ped)
     return pedModelsByHash[GetEntityModel(ped)]
 end
 
+--------------------------------------------------------------------------------
+-- Coleções (DLC/pack) de roupa.
+--
+-- O número "global" de uma peça (o drawable de sempre) muda quando entra um
+-- pack ou DLC antes dela. Coleção + número local não muda. A roupa é salva com
+-- os dois: `drawable` (global, pra quem lê a skin de fora) e
+-- `collection`/`localDrawable`. Ao vestir, a coleção manda: vira o número
+-- global de hoje. Ver docs.fivem.net/docs/scripting-manual/using-new-game-features/collection-based-natives
+--------------------------------------------------------------------------------
+
+local hasCollections = GetPedDrawableVariationCollectionName ~= nil
+
+---Coleção e número local da roupa vestida numa parte (nil fora do freemode/sem as natives).
+local function componentCollection(ped, componentId)
+    if not hasCollections then return end
+    local name = GetPedDrawableVariationCollectionName(ped, componentId)
+    local localIndex = GetPedDrawableVariationCollectionLocalIndex(ped, componentId)
+    if name and localIndex and localIndex >= 0 then return name, localIndex end
+end
+
+local function propCollection(ped, propId)
+    if not hasCollections or GetPedPropIndex(ped, propId) < 0 then return end
+    local name = GetPedPropCollectionName(ped, propId)
+    local localIndex = GetPedPropCollectionLocalIndex(ped, propId)
+    if name and localIndex and localIndex >= 0 then return name, localIndex end
+end
+
+---Número global de hoje de uma peça salva. Sem coleção (skin antiga, uniforme
+---de config) ou coleção que sumiu do servidor: o `drawable` salvo.
+local function componentDrawable(ped, componentId, item)
+    if hasCollections and item.collection and item.localDrawable then
+        local global = GetPedDrawableGlobalIndexFromCollection(ped, componentId, item.collection, item.localDrawable)
+        if global and global >= 0 then return global end
+    end
+    return item.drawable
+end
+
+local function propDrawable(ped, propId, item)
+    if item.drawable == -1 then return -1 end
+    if hasCollections and item.collection and item.localDrawable then
+        local global = GetPedPropGlobalIndexFromCollection(ped, propId, item.collection, item.localDrawable)
+        if global and global >= 0 then return global end
+    end
+    return item.drawable
+end
+
+---Preenche coleção + número local a partir do número global de cada peça
+---(o menu só conhece o global). Não depende do que o ped está vestindo.
+local function withCollections(ped, appearance)
+    if not hasCollections or not appearance then return appearance end
+
+    local function fill(item, drawable, nameFn, localFn, id)
+        item.collection, item.localDrawable = nil, nil
+        if not drawable or drawable < 0 then return end
+        local name, localIndex = nameFn(ped, id, drawable), localFn(ped, id, drawable)
+        if name and localIndex and localIndex >= 0 then item.collection, item.localDrawable = name, localIndex end
+    end
+
+    for _, component in pairs(appearance.components or {}) do
+        fill(component, component.drawable, GetPedCollectionNameFromDrawable, GetPedCollectionLocalIndexFromDrawable, component.component_id)
+    end
+    for _, prop in pairs(appearance.props or {}) do
+        fill(prop, prop.drawable, GetPedCollectionNameFromProp, GetPedCollectionLocalIndexFromProp, prop.prop_id)
+    end
+    if appearance.hair then
+        local hair = {}
+        fill(hair, appearance.hair.style, GetPedCollectionNameFromDrawable, GetPedCollectionLocalIndexFromDrawable, 2)
+        appearance.hair.collection, appearance.hair.localStyle = hair.collection, hair.localDrawable
+    end
+    return appearance
+end
+
 ---@param ped number entity id
 ---@return table<number, table<string, number>>
 local function getPedComponents(ped)
@@ -39,10 +111,13 @@ local function getPedComponents(ped)
 
     for i = 1, size do
         local componentId = constants.PED_COMPONENTS_IDS[i]
+        local collection, localDrawable = componentCollection(ped, componentId)
         components[i] = {
             component_id = componentId,
             drawable = GetPedDrawableVariation(ped, componentId),
             texture = GetPedTextureVariation(ped, componentId),
+            collection = collection,
+            localDrawable = localDrawable,
         }
     end
 
@@ -57,10 +132,13 @@ local function getPedProps(ped)
 
     for i = 1, size do
         local propId = constants.PED_PROPS_IDS[i]
+        local collection, localDrawable = propCollection(ped, propId)
         props[i] = {
             prop_id = propId,
             drawable = GetPedPropIndex(ped, propId),
             texture = GetPedPropTextureIndex(ped, propId),
+            collection = collection,
+            localDrawable = localDrawable,
         }
     end
     return props
@@ -145,11 +223,14 @@ end
 ---@param ped number entity id
 ---@return table<string, number>
 local function getPedHair(ped)
+    local collection, localStyle = componentCollection(ped, 2)
     return {
         style = GetPedDrawableVariation(ped, 2),
         color = GetPedHairColor(ped),
         highlight = GetPedHairHighlightColor(ped),
-        texture = GetPedTextureVariation(ped, 2)
+        texture = GetPedTextureVariation(ped, 2),
+        collection = collection,
+        localStyle = localStyle,
     }
 end
 
@@ -277,10 +358,11 @@ end
 
 local function setPedHair(ped, hair, tattoos)
     if hair then
-        SetPedComponentVariation(ped, 2, hair.style, hair.texture, 0)
+        local style = componentDrawable(ped, 2, { drawable = hair.style, collection = hair.collection, localDrawable = hair.localStyle })
+        SetPedComponentVariation(ped, 2, style, hair.texture, 0)
         SetPedHairColor(ped, hair.color, hair.highlight)
         if isPedFreemodeModel(ped) then
-            setTattoos(ped, tattoos or PED_TATTOOS, hair.style)
+            setTattoos(ped, tattoos or PED_TATTOOS, style)
         end
     end
 end
@@ -297,7 +379,7 @@ local function setPedComponent(ped, component)
             return
         end
 
-        SetPedComponentVariation(ped, component.component_id, component.drawable, component.texture, 0)
+        SetPedComponentVariation(ped, component.component_id, componentDrawable(ped, component.component_id, component), component.texture, 0)
     end
 end
 
@@ -311,10 +393,11 @@ end
 
 local function setPedProp(ped, prop)
     if prop then
-        if prop.drawable == -1 then
+        local drawable = propDrawable(ped, prop.prop_id, prop)
+        if drawable == -1 then
             ClearPedProp(ped, prop.prop_id)
         else
-            SetPedPropIndex(ped, prop.prop_id, prop.drawable, prop.texture, false)
+            SetPedPropIndex(ped, prop.prop_id, drawable, prop.texture, false)
         end
     end
 end
@@ -435,5 +518,7 @@ client = {
     setPedComponents = setPedComponents,
     setPedProps = setPedProps,
     getPedComponents = getPedComponents,
-    getPedProps = getPedProps
+    getPedProps = getPedProps,
+    getPedHair = getPedHair,
+    withCollections = withCollections
 }

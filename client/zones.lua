@@ -124,6 +124,20 @@ local function SetupStoreZones()
     end
 end
 
+-- Lojas editadas pelo painel (client/stores.lua): tira as zonas da lista velha
+-- e cria as da nova, sem restart.
+function RemoveStoreZones()
+    for i = 1, #Zones.Store do
+        if Zones.Store[i]["remove"] then Zones.Store[i]:remove() end
+    end
+    Zones.Store = {}
+    if currentZone and currentZone.name ~= "clothingRoom" and currentZone.name ~= "playerOutfitRoom" then
+        onZoneExit()
+    end
+end
+
+SetupStoreZonesNow = SetupStoreZones
+
 local function SetupClothingRoomZones()
     for _, v in pairs(Config.ClothingRooms) do
         Zones.ClothingRoom[#Zones.ClothingRoom + 1] = SetupZone(v, onClothingRoomEnter, onZoneExit)

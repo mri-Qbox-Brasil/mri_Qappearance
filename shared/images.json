@@ -3,6 +3,7 @@
   "ImageUrl": "https://assets.mriqbox.com.br/",
   "Layout": "default",
   "ImageExt": "",
+  "StudioUrl": "",
   "ImageSources": {
     "peds": "peds/",
     "heritage": "parents/",
