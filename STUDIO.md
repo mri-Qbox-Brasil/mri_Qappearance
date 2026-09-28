@@ -52,7 +52,8 @@ peça (o volume multiplica ~10x); a textura 0 é a própria foto do drawable.
 - **Espelhar esta peça**: pra peça de um lado só que ficou do outro (brinco
   numa orelha só). Salva na hora só a marca; a peça usa a câmera e o quadro
   fixo da parte espelhados, então acompanha quando a parte muda. O Resetar da
-  parte mantém as marcas
+  parte mantém as marcas. A marca é por gênero: o drawable 57 masculino e o
+  feminino são peças diferentes
 
 ### Fundo de recorte
 
@@ -80,7 +81,9 @@ Tudo fica em `studio/settings.json`, validado e salvo pelo servidor.
 
 Seleciona fotos de uma parte e: **Refazer** (com ou sem as cores), **Apagar** ou
 **Enquadrar esta peça** (abre o editor nela). Enquadramento novo só aparece nas
-fotos refeitas.
+fotos refeitas. No detalhe da peça, **Refazer espelhado** marca a peça como do
+outro lado (ver Espelhar esta peça) e já refaz; se ela já estava espelhada, o
+botão vira **Refazer normal**.
 
 ## Configuração — `shared/studio.lua`
 

@@ -252,30 +252,57 @@ local function render(scene)
     end)
 end
 
+local EYE_L, EYE_R = 25260, 27474 -- FB_L_Eye_000 / FB_R_Eye_000
+
+---Plano de simetria da cabeça: passa no meio dos olhos, normal na linha entre
+---eles. Pega cabeça virada ou inclinada na pose.
+---@return vector3? origin, vector3? normal nil se o ped não tem os ossos dos olhos
+local function headPlane(ped)
+    local l = GetPedBoneCoords(ped, EYE_L, 0.0, 0.0, 0.0)
+    local r = GetPedBoneCoords(ped, EYE_R, 0.0, 0.0, 0.0)
+    local axis = r - l
+    if #axis < 0.01 then return nil end
+    return (l + r) / 2, axis / #axis
+end
+
+local function reflect(p, origin, normal)
+    local d = (p.x - origin.x) * normal.x + (p.y - origin.y) * normal.y + (p.z - origin.z) * normal.z
+    return p - normal * (2 * d)
+end
+
 ---Câmera em órbita em volta do ped; a rotação sai por trigonometria.
-local function aimCamera(cam, ped, preset)
+---@param mirrored boolean? preset espelhado (mirrorCamera): reflete no plano da cabeça
+local function aimCamera(cam, ped, preset, mirrored)
     local pos = GetEntityCoords(ped)
-    local angle = math.rad(preset.angleH)
 
-    local camX = pos.x + preset.dist * math.sin(angle)
-    local camY = pos.y - preset.dist * math.cos(angle)
-    local camZ = pos.z + preset.zPos + preset.camZ
-    local lookZ = pos.z + preset.zPos
+    -- Espelhada: o preset vem com ângulo e inclinação invertidos (mirrorCamera),
+    -- o que reflete no eixo do corpo. Com zoom alto, milímetros de cabeça fora
+    -- desse eixo já tiram a orelha do quadro fixo: monta a câmera original e
+    -- reflete no plano da cabeça.
+    local origin, normal
+    if mirrored then origin, normal = headPlane(ped) end
+    local angle = math.rad(origin and -preset.angleH or preset.angleH)
 
-    local dx, dy, dz = pos.x - camX, pos.y - camY, lookZ - camZ
-    local pitch = math.deg(math.atan(dz, math.sqrt(dx * dx + dy * dy)))
-    local heading = -math.deg(math.atan(dx, dy))
+    local camPos = vector3(pos.x + preset.dist * math.sin(angle), pos.y - preset.dist * math.cos(angle), pos.z + preset.zPos + preset.camZ)
+    local look = vector3(pos.x, pos.y, pos.z + preset.zPos)
+    if origin then
+        camPos, look = reflect(camPos, origin, normal), reflect(look, origin, normal)
+    end
 
-    SetCamCoord(cam, camX, camY, camZ)
+    local d = look - camPos
+    local pitch = math.deg(math.atan(d.z, math.sqrt(d.x * d.x + d.y * d.y)))
+    local heading = -math.deg(math.atan(d.x, d.y))
+
+    SetCamCoord(cam, camPos.x, camPos.y, camPos.z)
     -- + 0.0: o JSON salvo devolve inteiro (fov 3) e native de float lê inteiro
     -- como outro número (a câmera ia pro zoom máximo ao reabrir e no lote).
     SetCamRot(cam, pitch, preset.roll + 0.0, heading, 2)
     SetCamFov(cam, preset.fov + 0.0)
 end
 
-local function placeCamera(ped, preset)
+local function placeCamera(ped, preset, mirrored)
     local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', false)
-    aimCamera(cam, ped, preset)
+    aimCamera(cam, ped, preset, mirrored)
     SetCamActive(cam, true)
     RenderScriptCams(true, false, 0, true, true)
     return cam
@@ -306,15 +333,17 @@ local function mirrorCamera(camera)
 end
 
 ---Câmera de uma peça: a da peça específica, a da parte ou o preset do uz
----(espelhada quando a peça está marcada como do outro lado).
-local function cameraFor(partKey, drawable)
+---(espelhada quando a peça está marcada como do outro lado, por gênero: o 57
+---masculino e o 57 feminino são brincos diferentes).
+---@return table camera, boolean mirrored
+local function cameraFor(partKey, drawable, gender)
     local custom = studioSettings.parts and studioSettings.parts[partKey]
     local key = drawable and tostring(drawable)
-    if custom and key and custom.pieces and custom.pieces[key] then return custom.pieces[key] end
+    if custom and key and custom.pieces and custom.pieces[key] then return custom.pieces[key], false end
     local part = PARTS[partKey] or DEFAULT_PART
     local camera = custom and custom.camera or CAMERAS[part.camera] or CAMERAS.body
-    if custom and key and custom.mirrored and custom.mirrored[key] then return mirrorCamera(camera) end
-    return camera
+    if custom and key and custom.mirrored and custom.mirrored[('%s:%s'):format(gender, key)] then return mirrorCamera(camera), true end
+    return camera, false
 end
 
 ---Esvazia o ped deixando só o que a parte fotografada precisa mostrar.
@@ -517,6 +546,42 @@ local function studioLayouts()
     layoutsBusy = false
     return layouts
 end
+
+---Quantas cores (texturas) cada peça tem no jogo, pra galeria mostrar as que
+---faltam foto. Contado uma vez por sessão com um ped local do modelo, como o
+---layout; fora do estúdio não tem o ped dele.
+local textureCounts = {} ---@type table<string, integer[]>
+
+RegisterNUICallback('studio_texture_counts', function(data, cb)
+    if not allowed() then return cb({ err = 'sem permissão' }) end
+    local gender = type(data) == 'table' and data.gender == 'female' and 'female' or 'male'
+    local partKey = type(data) == 'table' and data.part
+    local kind, id = type(partKey) == 'string' and partKey:match('^(%a+):(%d+)$')
+    if not kind or not PARTS[partKey] then return cb({ err = 'parte inválida' }) end
+    id = tonumber(id)
+
+    local cacheKey = gender .. ':' .. partKey
+    if not textureCounts[cacheKey] then
+        local model = MODELS[gender]
+        if not pcall(lib.requestModel, model, 5000) then return cb({ err = 'modelo do personagem não carregou' }) end
+        local at = GetEntityCoords(cache.ped)
+        local ped = CreatePed(26, model, at.x, at.y, at.z - 50.0, 0.0, false, false)
+        SetModelAsNoLongerNeeded(model)
+        if not ped or not DoesEntityExist(ped) then return cb({ err = 'não consegui criar o ped pra contar' }) end
+
+        local counts = {}
+        local drawables = kind == 'prop' and GetNumberOfPedPropDrawableVariations(ped, id) or GetNumberOfPedDrawableVariations(ped, id)
+        for drawable = 0, drawables - 1 do
+            counts[drawable + 1] = kind == 'prop'
+                and GetNumberOfPedPropTextureVariations(ped, id, drawable)
+                or GetNumberOfPedTextureVariations(ped, id, drawable)
+        end
+        DeleteEntity(ped)
+        textureCounts[cacheKey] = counts
+    end
+
+    cb({ ok = true, textures = textureCounts[cacheKey] })
+end)
 
 ---A NUI é https e não carrega imagem de http://ip:porta. Com o proxy da Cfx.re
 ---(web_baseUrl) a foto vem direto do servidor; sem ele, nil, e a NUI pede cada
@@ -765,6 +830,11 @@ function freezePose(ped, gender)
 
     local body = pose[gender]
     if body and loadDict(body.dict) then
+        -- Anim que não existe no dict: o jogo aceita o pedido e descarta, e o
+        -- ped fica no idle (balançando nas fotos).
+        if GetAnimDuration(body.dict, body.anim) == 0 then
+            print(('^3[mri_Qappearance] estúdio: a pose %s/%s não existe (Config.Studio.Pose)^0'):format(body.dict, body.anim))
+        end
         TaskPlayAnim(ped, body.dict, body.anim, 1000.0, -1000.0, -1, 1, 0.0, false, false, false)
         local deadline = GetGameTimer() + 1000
         while not IsEntityPlayingAnim(ped, body.dict, body.anim, 3) and GetGameTimer() < deadline do Wait(0) end
@@ -873,8 +943,8 @@ local function framePart(key, drawable)
     -- Cor do fundo da parte (modo Estúdio): magenta pra cabelo/roupa verde.
     local custom = studioSettings.parts and studioSettings.parts[key]
     booth.chroma = CHROMA_COLORS[custom and custom.chroma or STUDIO_CFG.ChromaKey] or CHROMA
-    booth.camPreset = cameraFor(key, drawable)
-    booth.cam = placeCamera(booth.ped, booth.camPreset)
+    booth.camPreset, booth.camMirrored = cameraFor(key, drawable, booth.gender)
+    booth.cam = placeCamera(booth.ped, booth.camPreset, booth.camMirrored)
     clearBlur()
     Wait(150)
 end
@@ -938,10 +1008,10 @@ RegisterNUICallback('studio_run_part', function(data, cb)
         local drawable = math.floor(tonumber(target[1]) or 0)
 
         -- Peça com enquadramento próprio (modo Estúdio) move a câmera só pra ela.
-        local preset = cameraFor(scene.partKey, drawable)
-        if preset ~= scene.camPreset and scene.cam then
-            aimCamera(scene.cam, scene.ped, preset)
-            scene.camPreset = preset
+        local preset, mirrored = cameraFor(scene.partKey, drawable, scene.gender)
+        if (preset ~= scene.camPreset or mirrored ~= scene.camMirrored) and scene.cam then
+            aimCamera(scene.cam, scene.ped, preset, mirrored)
+            scene.camPreset, scene.camMirrored = preset, mirrored
         end
 
         local texture = math.floor(tonumber(target[2]) or 0)
@@ -1077,7 +1147,7 @@ end)
 RegisterNUICallback('studio_edit_camera', function(data, cb)
     local camera = cleanCamera(type(data) == 'table' and data.camera)
     if booth and booth.cam and camera then
-        aimCamera(booth.cam, booth.ped, camera)
+        aimCamera(booth.cam, booth.ped, camera, booth.camMirrored)
         booth.camPreset = camera
     end
     cb({ ok = true })
@@ -1098,9 +1168,9 @@ RegisterNUICallback('studio_edit_dress', function(data, cb)
     dressPiece(booth.ped, kind, tonumber(id), drawable, math.floor(tonumber(data.texture) or 0))
 
     -- Peça com enquadramento próprio já abre nele.
-    local camera = cameraFor(booth.partKey, drawable)
-    aimCamera(booth.cam, booth.ped, camera)
-    booth.camPreset = camera
+    local camera, mirrored = cameraFor(booth.partKey, drawable, booth.gender)
+    aimCamera(booth.cam, booth.ped, camera, mirrored)
+    booth.camPreset, booth.camMirrored = camera, mirrored
     cb({ ok = true, camera = camera })
 end)
 

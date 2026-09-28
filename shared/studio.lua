@@ -65,11 +65,13 @@ Config.Studio = {
 
     -- Pose do ped no estúdio, congelada (velocidade 0): sem respirar, mexer a
     -- cabeça nem trocar de idle entre uma foto e outra. Padrão: o idle em pé do
-    -- personagem MP, braços soltos. (Não use mp_character_creation: é a pose
-    -- segurando a placa do criador.) false = sem pose (idle do jogo).
+    -- lobby de golpe (emote 'idle' do dpemotes). Não use mp_character_creation
+    -- (segura a placa do criador) nem single_team_loop_boss (braços cruzados);
+    -- move_m@multiplayer/idle não existe (o ped ficava no idle do jogo). Anim que não existe dá aviso no F8.
+    -- false = sem pose (idle do jogo).
     Pose = {
-        male = { dict = 'move_m@multiplayer', anim = 'idle' },
-        female = { dict = 'move_f@multiplayer', anim = 'idle' },
+        male = { dict = 'anim@heists@heist_corona@team_idles@male_a', anim = 'idle' },
+        female = { dict = 'anim@heists@heist_corona@team_idles@female_a', anim = 'idle' },
         -- Expressão neutra congelada no rosto, pra não piscar.
         facial = { dict = 'facials@gen_male@base', anim = 'mood_normal_1' },
     },

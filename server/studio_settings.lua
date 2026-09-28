@@ -7,7 +7,7 @@
 --     ['component:11'] = {
 --       camera = { fov, zPos, dist, angleH, camZ, roll },      -- sobrepõe o preset
 --       pieces = { ['42'] = { fov, zPos, dist, angleH, camZ, roll } }, -- peça específica
---       mirrored = { ['57'] = true },     -- peça do outro lado: câmera e quadro da parte espelhados
+--       mirrored = { ['male:57'] = true }, -- peça do outro lado (por gênero): câmera e quadro da parte espelhados
 --       crop = { mode = 'auto'|'fixed', box = { x, y, w, h }, padding, align = 'center'|'bottom' },
 --       chroma = 'green'|'magenta',                               -- cor do fundo
 --     },
@@ -74,9 +74,11 @@ local function cleanPart(part)
         end
     end
     if type(part.mirrored) == 'table' then
-        for drawable, on in pairs(part.mirrored) do
-            local key = math.tointeger(tonumber(drawable))
-            if key and key >= 0 and on == true then out.mirrored[tostring(key)] = true end
+        for piece, on in pairs(part.mirrored) do
+            local gender, drawable = tostring(piece):match('^(%a+):(%d+)$')
+            if (gender == 'male' or gender == 'female') and on == true then
+                out.mirrored[('%s:%d'):format(gender, tonumber(drawable))] = true
+            end
         end
     end
     if not out.camera and not out.crop and not out.chroma and next(out.pieces) == nil and next(out.mirrored) == nil then return nil end
