@@ -362,4 +362,11 @@ AddConvarChangeListener('mri:color', function(name)
     TriggerClientEvent('mri_Qappearance:accentColorChanged', -1, color)
 end)
 
+AddConvarChangeListener('mri:backgroundColor', function(name)
+    if name ~= 'mri:backgroundColor' then return end
+    local color = GetConvar('mri:backgroundColor', '')
+    if color ~= '' and not color:match('^#%x%x%x%x%x%x$') then return end
+    TriggerClientEvent('mri_Qappearance:backgroundColorChanged', -1, color)
+end)
+
 lib.versionCheck("mri-Qbox-Brasil/mri_Qappearance")

@@ -53,6 +53,21 @@ Discord: https://discord.illenium.dev
 
 https://streamable.com/qev2h7
 
+## Tema da suíte MRI
+
+A NUI segue o tema da suíte pelo `@mriqbox/ui-kit` e muda ao vivo, sem restart:
+
+| O que | De onde vem |
+|---|---|
+| Cor de destaque | convar `mri:color` (`getConfig` e `updateAccentColor`) |
+| Cor de fundo | convar `mri:backgroundColor` (`getConfig` e `updateBackgroundColor`) |
+| Tema dark/glass, opacidade, fonte, radius, cores de status | `/uiconfig` do ox_lib (`getUiConfig` e `ox_lib:uiConfigChanged`) |
+
+Dentro do mri_Qadmin (estúdio como plugin), o Qadmin manda tudo isso pelo bridge.
+A NUI só usa os tokens do kit (`primary`, `background`, `card`, `border`, `success`...)
+e marca as superfícies com `mri-surface` / `mri-surface-card`. A fonte vem do kit; o
+resource não hospeda fonte. Guia: `web/node_modules/@mriqbox/ui-kit/THEMING.md`.
+
 ## Documentation
 
 Read the docs here: https://docs.illenium.dev

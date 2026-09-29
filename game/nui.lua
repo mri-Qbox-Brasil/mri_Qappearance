@@ -357,19 +357,33 @@ RegisterNUICallback("rotate_right", function(_, cb)
     client.pedTurn(cache.ped, -10.0)
 end)
 
--- Cor de destaque da suite MRI (compartilhada com a suite inteira). Definida via
--- `setr mri:color "#hex"` no server.cfg ou pelo painel admin do mri_Qadmin.
+-- Tema da suíte MRI. Accent e fundo vêm das convars mri:color /
+-- mri:backgroundColor; o resto (tema, opacidade, fonte, radius, cores de
+-- status) vem do /uiconfig do ox_lib.
+-- Convenção deste script é `{ type, payload }` (ver customization.lua): o
+-- EventListener em web/src/Nui.ts lê `e.data.type` / `e.data.payload`.
 RegisterNUICallback("getConfig", function(_, cb)
-    cb({ accentColor = GetConvar('mri:color', '#00E699') })
+    cb({
+        accentColor = GetConvar('mri:color', '#00E699'),
+        backgroundColor = GetConvar('mri:backgroundColor', ''),
+    })
 end)
 
--- Broadcast: convar `mri:color` mudou no server, propaga pra NUI ja aberta.
--- Convencao deste script e `{ type, payload }` (ver customization.lua), nao
--- `{ action, data }` da suite — o EventListener em web/src/Nui.ts le
--- `e.data.type` / `e.data.payload`.
+RegisterNUICallback("getUiConfig", function(_, cb)
+    if GetResourceState('ox_lib') ~= 'started' then return cb(false) end
+    local ok, cfg = pcall(function() return exports.ox_lib:getUiConfig() end)
+    cb(ok and type(cfg) == 'table' and cfg or false)
+end)
+
 RegisterNetEvent('mri_Qappearance:accentColorChanged', function(newColor)
-    SendNuiMessage(json.encode({
-        type = 'updateAccentColor',
-        payload = { accentColor = newColor }
-    }))
+    SendNuiMessage(json.encode({ type = 'updateAccentColor', payload = { accentColor = newColor } }))
+end)
+
+RegisterNetEvent('mri_Qappearance:backgroundColorChanged', function(newColor)
+    SendNuiMessage(json.encode({ type = 'updateBackgroundColor', payload = { backgroundColor = newColor or '' } }))
+end)
+
+RegisterNetEvent('ox_lib:uiConfigChanged', function(cfg)
+    if type(cfg) ~= 'table' then return end
+    SendNuiMessage(json.encode({ type = 'applyUiConfig', payload = cfg }))
 end)

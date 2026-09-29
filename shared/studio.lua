@@ -63,11 +63,7 @@ Config.Studio = {
     -- iluminação e as fotos saem sem luz. Volta ao normal ao desmontar.
     ClockHour = 0,
 
-    -- Pose do ped no estúdio, congelada (velocidade 0): sem respirar, mexer a
-    -- cabeça nem trocar de idle entre uma foto e outra. Padrão: o idle em pé do
-    -- lobby de golpe (emote 'idle' do dpemotes). Não use mp_character_creation
-    -- (segura a placa do criador) nem single_team_loop_boss (braços cruzados);
-    -- move_m@multiplayer/idle não existe (o ped ficava no idle do jogo). Anim que não existe dá aviso no F8.
+    -- Pose do ped no estúdio, congelada: parado entre uma foto e outra.
     -- false = sem pose (idle do jogo).
     Pose = {
         male = { dict = 'anim@heists@heist_corona@team_idles@male_a', anim = 'idle' },

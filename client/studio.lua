@@ -830,8 +830,6 @@ function freezePose(ped, gender)
 
     local body = pose[gender]
     if body and loadDict(body.dict) then
-        -- Anim que não existe no dict: o jogo aceita o pedido e descarta, e o
-        -- ped fica no idle (balançando nas fotos).
         if GetAnimDuration(body.dict, body.anim) == 0 then
             print(('^3[mri_Qappearance] estúdio: a pose %s/%s não existe (Config.Studio.Pose)^0'):format(body.dict, body.anim))
         end
