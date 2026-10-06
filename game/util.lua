@@ -311,15 +311,18 @@ local function setPedHeadOverlays(ped, headOverlays)
     if headOverlays then
         for k, v in pairs(constants.HEAD_OVERLAYS) do
             local headOverlay = headOverlays[v]
-            SetPedHeadOverlay(ped, k-1, headOverlay.style, tofloat(headOverlay.opacity))
+            -- Aparência salva antes da camada existir (ex. addBodyBlemishes) fica como está.
+            if headOverlay then
+                SetPedHeadOverlay(ped, k-1, headOverlay.style, tofloat(headOverlay.opacity))
 
-            if headOverlay.color then
-                local colorType = 1
-                if v == "blush" or v == "lipstick" or v == "makeUp" then
-                    colorType = 2
+                if headOverlay.color then
+                    local colorType = 1
+                    if v == "blush" or v == "lipstick" or v == "makeUp" then
+                        colorType = 2
+                    end
+
+                    SetPedHeadOverlayColor(ped, k-1, colorType, headOverlay.color, headOverlay.secondColor)
                 end
-
-                SetPedHeadOverlayColor(ped, k-1, colorType, headOverlay.color, headOverlay.secondColor)
             end
         end
     end

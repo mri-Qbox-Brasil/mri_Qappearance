@@ -38,6 +38,7 @@ constants.HEAD_OVERLAYS = {
     "moleAndFreckles",
     "chestHair",
     "bodyBlemishes",
+    "addBodyBlemishes",
 }
 
 -- Thanks to rootcause for the eye colors names and hair decorations hashes.
@@ -356,6 +357,35 @@ constants.CAMERAS = {
         vec3(0, 0.98, -0.7),
         vec3(0, 0, -0.9),
     },
+    -- Criador de personagem: close por região do rosto.
+    face = {
+        vec3(0, 0.6, 0.66),
+        vec3(0, 0, 0.64),
+    },
+    face_nose = {
+        vec3(0.12, 0.42, 0.66),
+        vec3(0, 0, 0.65),
+    },
+    face_eyes = {
+        vec3(0, 0.42, 0.7),
+        vec3(0, 0, 0.69),
+    },
+    face_cheeks = {
+        vec3(0.25, 0.42, 0.66),
+        vec3(0, 0, 0.64),
+    },
+    face_jaw = {
+        vec3(0.3, 0.45, 0.58),
+        vec3(0, 0, 0.59),
+    },
+    face_lips = {
+        vec3(0, 0.4, 0.6),
+        vec3(0, 0, 0.6),
+    },
+    face_neck = {
+        vec3(0.25, 0.6, 0.52),
+        vec3(0, 0, 0.52),
+    },
 }
 
 constants.OFFSETS = {
@@ -363,4 +393,11 @@ constants.OFFSETS = {
     head = vec2(0.7, -0.45),
     body = vec2(1.2, -0.45),
     bottom = vec2(0.7, -0.45),
+    face = vec2(0.45, -0.3),
+    face_nose = vec2(0.35, -0.2),
+    face_eyes = vec2(0.35, -0.2),
+    face_cheeks = vec2(0.35, -0.2),
+    face_jaw = vec2(0.35, -0.2),
+    face_lips = vec2(0.35, -0.2),
+    face_neck = vec2(0.4, -0.3),
 }

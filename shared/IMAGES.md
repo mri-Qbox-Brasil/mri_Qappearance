@@ -31,15 +31,15 @@ Editou o `images.json`? Basta dar **restart no resource** — não precisa rebui
 {
   "ImageLocal": "url",
   "ImageUrl": "https://assets.mriqbox.com.br/",
-  "Layout": "default",
+  "Layout": "studio",
   "ImageExt": "",
   "StudioUrl": "",
   "ImageSources": {
     "peds": "peds/",
     "heritage": "parents/",
     "appearance": "peds/",
-    "clothes": "clothing/",
-    "accessories": "clothing/",
+    "clothes": "mri_appearance/",
+    "accessories": "mri_appearance/",
     "tattoos": "peds/tattoos/"
   }
 }
@@ -49,8 +49,8 @@ Editou o `images.json`? Basta dar **restart no resource** — não precisa rebui
 |---|---|---|
 | `ImageUrl` | URL com `/` no final | Endereço base de onde as imagens são carregadas (CDN, host próprio ou `cfx-nui-...`). |
 | `ImageLocal` | `url` \| `pasta` | `url` = imagens remotas (ext `webp`). `pasta` = imagens locais (ext `png`). Só afeta a extensão quando `ImageExt` está vazio. |
-| `Layout` | `default` \| `autoshot` | Formato do nome do arquivo. Veja seção 3. |
-| `ImageExt` | `""` \| `png` \| `webp` \| `jpg` | Força a extensão. Vazio = resolve sozinho (`autoshot`→`png`, senão depende de `ImageLocal`). |
+| `Layout` | `studio` \| `default` \| `autoshot` | Formato do nome do arquivo. Veja seção 3. |
+| `ImageExt` | `""` \| `png` \| `webp` \| `jpg` | Força a extensão. Vazio = resolve sozinho (`autoshot`→`png`, `studio`→`webp`, senão depende de `ImageLocal`). |
 | `StudioUrl` | `""` \| `off` \| URL | Fotos geradas pelo estúdio (`/adminappearance`). Vazio = o próprio servidor; `off` = não usa; URL = outro endereço, que precisa ser HTTPS (a NUI não carrega `http://`). Veja a seção 5. |
 | `ImageSources` | mapa de subpastas | Subpasta por categoria. **Só usado no layout `default`** (no `autoshot` a pasta é o próprio `componentId`). |
 
@@ -61,8 +61,27 @@ Chaves de `ImageSources` realmente consumidas: `clothes` (roupas), `accessories`
 
 ## 3. Layouts e padrão de nomenclatura
 
-A "cauda" do nome é sempre `{drawable}` (peça) ou `{drawable}_{texture}` (variação de
-cor). O que muda entre os layouts é o **prefixo**.
+### `studio`: nomes do estúdio (CDN MRI, padrão)
+
+Mesmo nome das fotos que o estúdio (`/adminappearance`) grava em `studio/`: por
+coleção (DLC/pack) e número local, então pack novo de roupa não embaralha as fotos.
+
+```
+{ImageUrl}{pasta}cloth_{m|f}_{c|p}{id}-{coleção}-{numeroLocal}[-{textura}].{ext}
+```
+
+| Tipo | Exemplo |
+|---|---|
+| Roupa (drawable) | `https://assets.mriqbox.com.br/mri_appearance/cloth_m_c11-base-5.webp` |
+| Roupa (textura 3) | `https://assets.mriqbox.com.br/mri_appearance/cloth_m_c11-base-5-3.webp` |
+| Prop (drawable)  | `https://assets.mriqbox.com.br/mri_appearance/cloth_m_p0-mp_m_heist4-2.webp` |
+
+`base` é o jogo base; textura 0 não leva sufixo. A NUI descobre a coleção de cada
+número global pelo próprio jogo, sem tabela. Peça de pack que não está no CDN mostra o número.
+As fotos são transparentes e já recortadas: o menu desenha o fundo do modo Estúdio atrás delas.
+
+Nos layouts `default` e `autoshot` a "cauda" do nome é sempre `{drawable}` (peça) ou
+`{drawable}_{texture}` (variação de cor). O que muda entre eles é o **prefixo**.
 
 ### `default` — arquivos achatados numa pasta (CDN MRI)
 
@@ -99,7 +118,14 @@ cor). O que muda entre os layouts é o **prefixo**.
 
 **CDN MRI (padrão):**
 ```json
-{ "ImageLocal": "url", "ImageUrl": "https://assets.mriqbox.com.br/", "Layout": "default" }
+{ "ImageLocal": "url", "ImageUrl": "https://assets.mriqbox.com.br/", "Layout": "studio",
+  "ImageSources": { "clothes": "mri_appearance/", "accessories": "mri_appearance/" } }
+```
+
+**CDN MRI antigo (pasta `clothing/`, por número global):**
+```json
+{ "ImageLocal": "url", "ImageUrl": "https://assets.mriqbox.com.br/", "Layout": "default",
+  "ImageSources": { "clothes": "clothing/", "accessories": "clothing/" } }
 ```
 
 **uz_AutoShot (fotos geradas localmente):**
@@ -127,8 +153,8 @@ cor). O que muda entre os layouts é o **prefixo**.
   `CaptureAllTextures = true` no `Customize.lua` do uz_AutoShot.
 - **Fotos do estúdio têm prioridade.** Peça que foi fotografada pelo
   `/adminappearance` (ou pela aba Aparência do mri_Qadmin) usa a foto gerada;
-  se ela não carregar, a grade tenta a URL do CDN e só então o número da peça.
-  As fotos são por drawable: o grid de *texturas* segue no CDN. Ver `STUDIO.md`.
+  se ela não carregar (ou o servidor não tiver foto dela), a grade tenta a URL do
+  CDN e só então o número da peça. Ver `STUDIO.md`.
 - **Modo `pasta` (imagens locais):** as imagens precisam estar acessíveis pela NUI,
   ou seja, dentro do resource e adicionadas ao `files{}` do `fxmanifest.lua`.
 

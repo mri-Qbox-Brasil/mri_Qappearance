@@ -125,6 +125,49 @@ function InitializeCharacter(gender, onSubmit, onCancel)
     end, config)
 end
 
+---Recriar personagem (painel, aba Jogadores): o criador abre onde ele
+---está, partindo do personagem atual. Sair sem salvar devolve como estava.
+local function recreateCharacter()
+    local config = getNewCharacterConfig()
+    config.recreate = true
+    config.enableExit = true
+    TriggerServerEvent("illenium-appearance:server:ChangeRoutingBucket")
+    client.startPlayerCustomization(function(appearance)
+        if appearance then
+            TriggerServerEvent("illenium-appearance:server:saveAppearance", appearance)
+        end
+        Framework.CachePed()
+        TriggerServerEvent("illenium-appearance:server:ResetRoutingBucket")
+    end, config)
+end
+
+lib.callback.register("mri_Qappearance:recreateCharacter", function()
+    if client.isCustomizing() then return false, "está com o menu de aparência aberto" end
+    if IsEntityDead(cache.ped) or IsPedFatallyInjured(cache.ped) then return false, "está morto" end
+    if cache.vehicle then return false, "está num veículo" end
+    CreateThread(recreateCharacter)
+    return true
+end)
+
+---Painel, aba Jogadores. Pra si mesmo o painel fecha antes (ele solta o foco
+---que o criador vai pegar) e o erro, se houver, vem por notificação.
+RegisterNUICallback("recreate_character", function(data, cb)
+    local target = math.tointeger(tonumber(type(data) == "table" and data.id))
+    if not target then return cb({ err = "ID inválido" }) end
+
+    if target ~= cache.serverId then
+        local ok, result = lib.callback.await("mri_Qappearance:recreate", false, target)
+        return cb(ok and { ok = true, name = result } or { err = result })
+    end
+
+    cb({ ok = true, self = true })
+    Wait(250) -- o painel (ou o Qadmin) fecha e solta o foco
+    local ok, result = lib.callback.await("mri_Qappearance:recreate", false, target)
+    if not ok then
+        lib.notify({ type = "error", description = result })
+    end
+end)
+
 function OpenShop(config, isPedMenu, shopType)
     lib.callback("illenium-appearance:server:hasMoney", false, function(hasMoney, money)
         if not hasMoney and not isPedMenu then

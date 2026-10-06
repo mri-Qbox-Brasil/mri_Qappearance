@@ -1276,6 +1276,101 @@ RegisterNUICallback('studio_save_log', function(data, cb)
     TriggerLatentServerEvent('mri_Qappearance:studio:saveLog', STUDIO_CFG.LatentRate, data.text)
 end)
 
+--------------------------------------------------------------------------------
+-- Creator presets (aba Prontos): one photo per face or look on the same green screen
+--------------------------------------------------------------------------------
+
+-- faces reuse the mask framing (adjustable in the studio editor); looks frame the whole body
+local LOOK_CAMERA = { fov = 40.0, zPos = -0.05, dist = 3.2, angleH = 180.0, camZ = 0.0, roll = 0.0 }
+local PRESET_STREAM_MS = 4000
+
+RegisterNUICallback('presets_shoot_start', function(data, cb)
+    if booth then return cb({ err = 'já tem um lote rodando' }) end
+    if not allowed() then return cb({ err = 'sem permissão' }) end
+    if type(data) ~= 'table' or type(data.items) ~= 'table' or #data.items == 0 then return cb({ err = 'nada pra fotografar' }) end
+    cb({ ok = true })
+
+    Wait(250) -- the panel (or Qadmin) lets go of focus first
+    adminOpen = false
+    SetNuiFocus(true, true)
+    setOtherHudsHidden(true)
+    sendNui('presets_shoot', {
+        items = data.items,
+        reopen = data.origin == 'standalone',
+        config = publicConfig(),
+        settings = studioSettings,
+    })
+end)
+
+RegisterNUICallback('presets_booth_open', function(data, cb)
+    if not allowed() then return cb({ err = 'sem permissão' }) end
+    local ok, err = openBooth(type(data) == 'table' and data.gender)
+    cb(ok and { ok = true } or { err = err })
+end)
+
+---Dresses the booth ped as the preset: a face wears the starting clothes, a look wears the studio face.
+RegisterNUICallback('presets_booth_dress', function(data, cb)
+    if not booth or not booth.ped then return cb({ err = 'sem estúdio ativo' }) end
+    local item = type(data) == 'table' and type(data.data) == 'table' and data.data
+    local kind = type(data) == 'table' and data.kind
+    if not item or (kind ~= 'face' and kind ~= 'look') then return cb({ err = 'payload inválido' }) end
+    local camera = kind == 'face' and cameraFor('component:1', nil, booth.gender) or LOOK_CAMERA
+
+    local ped = booth.ped
+    local start = Config.InitialPlayerClothes[booth.gender == 'female' and 'Female' or 'Male']
+    if start then
+        client.setPedComponents(ped, start.Components)
+        client.setPedProps(ped, start.Props)
+        if start.Hair then client.setPedHair(ped, start.Hair, {}) end
+    end
+
+    if kind == 'face' then
+        -- barefoot like the mask photos: heels lift the head out of the mask framing
+        SetPedComponentVariation(ped, 6, -1, 0, 0)
+        if item.headBlend then client.setPedHeadBlend(ped, item.headBlend) end
+        if item.faceFeatures then client.setPedFaceFeatures(ped, item.faceFeatures) end
+        if item.headOverlays then client.setPedHeadOverlays(ped, item.headOverlays) end
+        if item.hair then client.setPedHair(ped, item.hair, {}) end
+        if item.eyeColor then client.setPedEyeColor(ped, item.eyeColor) end
+    else
+        if item.components then client.setPedComponents(ped, item.components) end
+        if item.props then client.setPedProps(ped, item.props) end
+    end
+
+    local deadline = GetGameTimer() + PRESET_STREAM_MS
+    while not HaveAllStreamingRequestsCompleted(ped) and GetGameTimer() < deadline do Wait(0) end
+
+    booth.hideHead = false
+    booth.chroma = CHROMA
+    aimCamera(booth.cam, ped, camera)
+    clearBlur()
+    Wait(150)
+    cb({ ok = true })
+end)
+
+local pendingPresetPhotos = {}
+
+RegisterNetEvent('mri_Qappearance:studio:savedPresetPhoto', function(requestId, ok, err)
+    local pending = pendingPresetPhotos[requestId]
+    if not pending then return end
+    pendingPresetPhotos[requestId] = nil
+    pending(ok and { ok = true } or { err = err or 'o servidor não gravou' })
+end)
+
+RegisterNUICallback('presets_photo_save', function(data, cb)
+    if type(data) ~= 'table' or type(data.data) ~= 'string' then return cb({ err = 'payload inválido' }) end
+    uploadSeq = uploadSeq + 1
+    local requestId = uploadSeq
+    pendingPresetPhotos[requestId] = cb
+    TriggerLatentServerEvent('mri_Qappearance:studio:savePresetPhoto', STUDIO_CFG.LatentRate, requestId, data.kind, data.id, b64decode(data.data))
+    SetTimeout(UPLOAD_TIMEOUT, function()
+        local pending = pendingPresetPhotos[requestId]
+        if not pending then return end
+        pendingPresetPhotos[requestId] = nil
+        pending({ err = 'o servidor não confirmou a gravação' })
+    end)
+end)
+
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     local wasShooting = booth ~= nil

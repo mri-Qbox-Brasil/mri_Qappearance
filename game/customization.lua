@@ -381,6 +381,9 @@ client.getAppearanceSettings = getAppearanceSettings
 local config
 function client.getConfig() return config end
 
+local isNewCharacter = false
+function client.isNewCharacter() return isNewCharacter end
+
 local isCameraInterpolating
 local currentCamera
 local cameraHandle
@@ -458,8 +461,9 @@ local function setCamera(key)
         isCameraInterpolating = true
 
         CreateThread(function()
-            repeat Wait(500)
-            until not IsCamInterpolating(cameraHandle) and IsCamActive(tmpCamera)
+            -- short poll: the creator camera rig waits for this swap before it takes input again
+            repeat Wait(50)
+            until not IsCamInterpolating(tmpCamera) and not IsCamInterpolating(cameraHandle) and IsCamActive(tmpCamera)
             DestroyCam(cameraHandle, false)
             cameraHandle = tmpCamera
             isCameraInterpolating = false
@@ -471,6 +475,7 @@ local function setCamera(key)
         SetCamActive(cameraHandle, true)
     end
 end
+client.applyDof = applyDof
 
 
 
@@ -520,7 +525,17 @@ end
 
 local playerCoords
 local function pedTurn(ped, angle)
-    reverseCamera = not reverseCamera
+    -- Só a meia-volta (ver de costas) inverte a câmera. Os giros de 10° das teclas
+    -- A/D inverteriam a cada toque e a próxima câmera sairia atrás do ped.
+    if math.abs(angle) == 180.0 then reverseCamera = not reverseCamera end
+    -- No criador o ped respira em loop: só gira, sem limpar as tarefas.
+    if isNewCharacter then
+        -- A/D glide through the creator camera rig; the half-turn stays instant (the step camera is placed from it).
+        if math.abs(angle) ~= 180.0 and client.creatorTurn(angle) then return end
+        client.creatorSpinHalt()
+        SetEntityHeading(ped, GetEntityHeading(ped) - angle)
+        return
+    end
     local sequenceTaskId = OpenSequenceTask()
     if sequenceTaskId then
         -- TaskGoStraightToCoord(0, playerCoords.x, playerCoords.y, playerCoords.z, 8.0, -1, GetEntityHeading(ped) - angle, 0.5)
@@ -607,6 +622,8 @@ local playerHeading
 function client.getHeading() return playerHeading end
 
 local callback
+function client.isCustomizing() return playerAppearance ~= nil end
+
 function client.startPlayerCustomization(cb, conf)
     playerAppearance = client.getPedAppearance(cache.ped)
     playerCoords = GetEntityCoords(cache.ped, true)
@@ -616,6 +633,12 @@ function client.startPlayerCustomization(cb, conf)
 
     callback = cb
     config = conf
+    -- Criador de personagem: quem abriu libera o rosto e o personagem ainda não
+    -- tem aparência salva (acabou de ser criado), ou um admin mandou recriar.
+    isNewCharacter = conf and conf.headBlend and conf.faceFeatures
+        and (conf.recreate or lib.callback.await("illenium-appearance:server:getAppearance", false) == nil) or false
+    -- Retratos dos pais do GTA Online, que a NUI mostra via nui-img.
+    if isNewCharacter then RequestStreamedTextureDict("char_creator_portraits", false) end
     reverseCamera = false
     isCameraInterpolating = false
 
@@ -628,6 +651,7 @@ function client.startPlayerCustomization(cb, conf)
 
     ClearPedTasksImmediately(cache.ped)
     playCustomizationAnim()
+    client.creatorIdle()
 
     if Config.HideRadar then DisplayRadar(false) end
 
@@ -655,6 +679,7 @@ function client.exitPlayerCustomization(appearance)
     -- Restaura a HUD (mri_Qhud) ao sair da edição.
     LocalPlayer.state:set("hideHud", false, false)
 
+    client.creatorStop()
     stopCustomizationAnim()
     ClearPedTasksImmediately(cache.ped)
     SetEntityInvincible(cache.ped, false)
@@ -670,7 +695,8 @@ function client.exitPlayerCustomization(appearance)
         client.setPedTattoos(cache.ped, appearance.tattoos)
     end
 
-    RestorePlayerStats()
+    -- has a 1 s health delay inside; blocking here left the bare game camera on screen before the caller ran
+    CreateThread(RestorePlayerStats)
 
     if callback then
         callback(appearance)
@@ -678,6 +704,8 @@ function client.exitPlayerCustomization(appearance)
 
     callback = nil
     config = nil
+    if isNewCharacter then SetStreamedTextureDictAsNoLongerNeeded("char_creator_portraits") end
+    isNewCharacter = false
     playerAppearance = nil
     playerCoords = nil
     cameraHandle = nil

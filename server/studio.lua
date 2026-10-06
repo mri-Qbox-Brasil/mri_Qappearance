@@ -240,7 +240,8 @@ end
 
 local function validName(name)
     return type(name) == 'string' and #name <= 128
-        and (name:match('^cloth_[mf]_[cp]%d+%-[%w_]+%-%d+$') or name:match('^cloth_[mf]_[cp]%d+%-[%w_]+%-%d+%-%d+$')) ~= nil
+        and (name:match('^cloth_[mf]_[cp]%d+%-[%w_]+%-%d+$') or name:match('^cloth_[mf]_[cp]%d+%-[%w_]+%-%d+%-%d+$')
+            or name:match('^preset_face_%d+$') or name:match('^preset_look_%d+$')) ~= nil
 end
 
 ---Identificação de uma foto vinda do client (upload/apagar), validada.
@@ -303,6 +304,35 @@ RegisterNetEvent('mri_Qappearance:studio:saveBatch', function(requestId, items)
 
     TriggerClientEvent('mri_Qappearance:studio:savedBatch', src, requestId, results)
 end)
+
+-- Creator preset photo (aba Prontos): named after the preset, so it only lands for one that exists.
+RegisterNetEvent('mri_Qappearance:studio:savePresetPhoto', function(requestId, kind, id, bin)
+    local src = source
+    local function reply(ok, err) TriggerClientEvent('mri_Qappearance:studio:savedPresetPhoto', src, requestId, ok, err) end
+
+    if not isAllowed(src) then return reply(false, 'sem permissão') end
+    id = math.tointeger(tonumber(id))
+    if (kind ~= 'face' and kind ~= 'look') or not id or type(bin) ~= 'string' then return reply(false, 'payload inválido') end
+    if #bin > MAX_ICON_BYTES then return reply(false, 'imagem grande demais') end
+    local ext = #bin >= 16 and iconFormat(bin)
+    if not ext then return reply(false, 'não é webp nem png') end
+
+    local name = ('preset_%s_%d'):format(kind, id)
+    if not SaveResourceFile(RESOURCE, ('%s/%s.%s'):format(DIR, name, ext), bin, #bin) then return reply(false, 'falha ao gravar') end
+    pcall(os.remove, ('%s/%s/%s.%s'):format(GetResourcePath(RESOURCE), DIR, name, ext == 'webp' and 'png' or 'webp'))
+    if not PresetsPhotoSaved(kind, id) then
+        pcall(os.remove, ('%s/%s/%s.%s'):format(GetResourcePath(RESOURCE), DIR, name, ext))
+        return reply(false, 'esse pronto não existe mais')
+    end
+    reply(true)
+end)
+
+---Removes a preset's photo when the preset is deleted (server/presets.lua).
+function StudioRemovePresetPhoto(kind, id)
+    for _, ext in ipairs({ 'webp', 'png' }) do
+        pcall(os.remove, ('%s/%s/preset_%s_%d.%s'):format(GetResourcePath(RESOURCE), DIR, kind, id, ext))
+    end
+end
 
 ---Apaga fotos (galeria do painel). Recebe a mesma identificação do upload.
 lib.callback.register('mri_Qappearance:studio:deletePhotos', function(source, list)

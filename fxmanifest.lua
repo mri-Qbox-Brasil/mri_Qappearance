@@ -3,7 +3,7 @@ game "gta5"
 
 author "MRI BRASIL"
 description "An updated fork from illenium-appearance."
-version '1.7.1'
+version '1.8.0'
 
 lua54 "yes"
 
@@ -15,6 +15,8 @@ client_scripts {
   "game/nui.lua",
   "game/transfer.lua",
   "game/sounds.lua",
+  "game/creator.lua",
+  "game/creator_camera.lua",
   "client/outfits.lua",
   "client/common.lua",
   "client/zones.lua",
@@ -42,6 +44,7 @@ client_scripts {
   "client/props.lua",
   "client/client.lua",
   "client/studio.lua",
+  "client/presets.lua",
 }
 
 server_scripts {
@@ -66,7 +69,9 @@ server_scripts {
   "server/permissions.lua",
   "server/studio.lua",
   "server/studio_settings.lua",
-  "server/stores.lua"
+  "server/stores.lua",
+  "server/recreate.lua",
+  "server/presets.lua"
 }
 
 shared_scripts {

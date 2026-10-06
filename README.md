@@ -68,6 +68,51 @@ A NUI só usa os tokens do kit (`primary`, `background`, `card`, `border`, `succ
 e marca as superfícies com `mri-surface` / `mri-surface-card`. A fonte vem do kit; o
 resource não hospeda fonte. Guia: `web/node_modules/@mriqbox/ui-kit/THEMING.md`.
 
+## Câmera do criador
+
+No criador de personagem a câmera é um rig próprio (`game/creator_camera.lua`, entrada em
+`web/src/flows/creator/cameraRig.ts`). Cada etapa tem o seu enquadramento e o rig mexe a partir dele:
+
+- **Arrastar na horizontal** gira o personagem. Soltando com velocidade, ele continua girando e para com atrito.
+- **Arrastar na vertical** sobe e desce a câmera. A direção do arrasto trava nos primeiros pixels.
+- **Roda do mouse** (ou arrastar com o botão direito) aproxima a câmera de verdade, em direção ao ponto sob o cursor.
+- Passando do limite (rosto ao corpo inteiro, pés à cabeça), a câmera resiste e volta suave.
+- **Duplo clique** volta ao enquadramento da etapa; trocar de etapa também.
+- A/D giram com a mesma suavização.
+
+Sensibilidade, limites e atrito ficam nas constantes do topo de `game/creator_camera.lua`.
+
+## Rostos e looks prontos
+
+O criador abre na etapa **Rosto** (gênero e rostos prontos) e a etapa **Roupa** começa na aba
+**Looks**. Os prontos são montados por admins no próprio criador:
+
+1. Abra o criador em você (painel, aba **Jogadores**, com o seu ID).
+2. Monte o rosto (ou a roupa) e clique no marcador do rodapé: na etapa Roupa salva um look,
+   nas outras salva um rosto (pais, traços, marcas, cabelo e cor dos olhos).
+3. No painel, aba **Prontos**, dá pra renomear, apagar e tirar as fotos: **Tirar fotos que
+   faltam** (ou **Refazer foto** num item) fecha o painel e o estúdio fotografa cada pronto no
+   fundo verde, rosto em close com a roupa inicial e look de corpo inteiro com o rosto do estúdio.
+   As fotos ficam em `studio/preset_face_<id>` e `studio/preset_look_<id>` e saem junto quando o
+   pronto é apagado.
+
+Ficam em `data/presets.json` (fora do git), por gênero. As peças são gravadas com coleção e
+número local, então pack novo de roupa não embaralha os looks. Para jogador sem nenhum look
+pronto, a aba Looks some e a etapa Roupa abre direto no guarda-roupa.
+
+## Recriar personagem
+
+Um admin pode mandar um jogador (ou ele mesmo) de volta pro criador de personagem, onde
+ele estiver, pelo painel `/adminappearance`, aba **Jogadores** (com o próprio ID, abre
+em você). Mesma permissão do painel (`mri_Qappearance.studio`, `command`
+ou `qadmin.master`).
+
+- O criador abre com o personagem como ele está; dá pra mudar tudo, inclusive o gênero.
+- Ao segurar "Criar", a aparência nova é salva. "Sair" (ou Esc) pede confirmação e devolve o personagem como estava.
+- Enquanto cria, o jogador fica numa dimensão só dele e volta pro mesmo lugar no fim.
+- Não abre se ele estiver morto, num veículo ou com o menu de aparência aberto; o admin recebe o motivo.
+- Cada uso fica no console do servidor: `[mri_Qappearance] <admin> mandou <jogador> (id N) recriar o personagem`.
+
 ## Documentation
 
 Read the docs here: https://docs.illenium.dev

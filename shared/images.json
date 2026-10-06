@@ -1,15 +1,15 @@
 {
   "ImageLocal": "url",
   "ImageUrl": "https://assets.mriqbox.com.br/",
-  "Layout": "default",
+  "Layout": "studio",
   "ImageExt": "",
   "StudioUrl": "",
   "ImageSources": {
     "peds": "peds/",
     "heritage": "parents/",
     "appearance": "peds/",
-    "clothes": "clothing/",
-    "accessories": "clothing/",
+    "clothes": "mri_appearance/",
+    "accessories": "mri_appearance/",
     "tattoos": "peds/tattoos/"
   }
 }

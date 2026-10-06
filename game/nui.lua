@@ -14,7 +14,7 @@ RegisterNUICallback("appearance_get_data", function(_, cb)
     if appearanceData.tattoos then
         client.setPedTattoos(cache.ped, appearanceData.tattoos)
     end
-    cb({ config = client.getConfig(), appearanceData = appearanceData })
+    cb({ config = client.getConfig(), appearanceData = appearanceData, newCharacter = client.isNewCharacter() })
 end)
 
 RegisterNUICallback("appearance_set_camera", function(camera, cb)
@@ -255,6 +255,8 @@ RegisterNUICallback("appearance_change_model", function(model, cb)
     SetEntityHeading(cache.ped, client.getHeading())
     SetEntityInvincible(playerPed, true)
     -- TaskStandStill(playerPed, -1)
+    -- Ped novo (troca de gênero no criador): a respiração recomeça nele.
+    client.creatorIdle()
 
     cb({
         appearanceSettings = client.getAppearanceSettings(),
@@ -334,9 +336,12 @@ end)
 
 RegisterNUICallback("appearance_save", function(appearance, cb)
     cb(1)
-    client.wearClothes(appearance, "head")
-    client.wearClothes(appearance, "body")
-    client.wearClothes(appearance, "bottom")
+    -- the creator dresses the ped live and ends on its own pose; dressing anims here would play over the handoff
+    if not client.isNewCharacter() then
+        client.wearClothes(appearance, "head")
+        client.wearClothes(appearance, "body")
+        client.wearClothes(appearance, "bottom")
+    end
     -- Coleção + número local de cada peça, a partir do número global do menu.
     client.withCollections(cache.ped, appearance)
     client.exitPlayerCustomization(appearance)
