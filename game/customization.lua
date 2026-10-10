@@ -57,13 +57,23 @@ local function listContainsAny(items, containedItems)
     return false
 end
 
+-- One server round trip per editor session: a gender switch builds ~19 settings and each used to ask again.
+local playerAces
+
+local function getPlayerAces()
+    if not playerAces then
+        playerAces = lib.callback.await("illenium-appearance:server:GetPlayerAces", false) or {}
+    end
+    return playerAces
+end
+
 local function allowedForPlayer(item, allowedAces)
     return (item.jobs and listContains(item.jobs, client.job.name)) or (item.gangs and listContains(item.gangs, client.gang.name)) or (item.aces and listContainsAny(item.aces, allowedAces) or (item.citizenids and listContains(item.citizenids, client.citizenid)))
 end
 
 local function filterPedModelsForPlayer(pedConfigs)
     local playerPeds = {}
-    local allowedAces = lib.callback.await("illenium-appearance:server:GetPlayerAces", false)
+    local allowedAces = getPlayerAces()
 
     for i = 1, #pedConfigs do
         local config = pedConfigs[i]
@@ -97,7 +107,7 @@ local function filterBlacklistSettings(items, drawableId)
         textures = {}
     }
 
-    local allowedAces = lib.callback.await("illenium-appearance:server:GetPlayerAces", false)
+    local allowedAces = getPlayerAces()
 
     for i = 1, #items do
         local item = items[i]
@@ -626,6 +636,7 @@ function client.isCustomizing() return playerAppearance ~= nil end
 
 function client.startPlayerCustomization(cb, conf)
     playerAppearance = client.getPedAppearance(cache.ped)
+    playerAces = nil
     playerCoords = GetEntityCoords(cache.ped, true)
     playerHeading = GetEntityHeading(cache.ped)
 
