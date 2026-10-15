@@ -1,8 +1,9 @@
 -- Ready-made faces and looks for the character creator, curated by admins from the creator
--- itself and managed in the panel (aba Prontos). Stored in data/presets.json.
+-- itself and managed in the panel (aba Prontos). Stored in data/presets.json, seeded from presets/.
 
 local RESOURCE = GetCurrentResourceName()
 local FILE = 'data/presets.json'
+local DEFAULTS_DIR = 'presets' -- versioned, ships in the release
 local KINDS = { face = 'faces', look = 'looks' }
 local GENDERS = { male = true, female = true }
 local MAX_NAME = 32
@@ -15,7 +16,25 @@ local function save()
     SaveResourceFile(RESOURCE, FILE, json.encode(presets, { indent = true }), -1)
 end
 
+---First boot: copies the shipped presets (presets/) into data/ and their photos into studio/.
+local function seedDefaults()
+    local raw = LoadResourceFile(RESOURCE, DEFAULTS_DIR .. '/presets.json')
+    local ok, data = pcall(json.decode, raw or '')
+    if not ok or type(data) ~= 'table' then return end
+    for kind, key in pairs(KINDS) do
+        for _, item in ipairs(type(data[key]) == 'table' and data[key] or {}) do
+            for _, ext in ipairs({ 'webp', 'png' }) do
+                local name = ('preset_%s_%s.%s'):format(kind, item.id, ext)
+                local bin = LoadResourceFile(RESOURCE, ('%s/%s'):format(DEFAULTS_DIR, name))
+                if bin then SaveResourceFile(RESOURCE, 'studio/' .. name, bin, #bin) end
+            end
+        end
+    end
+    SaveResourceFile(RESOURCE, FILE, raw, -1)
+end
+
 local function load()
+    if not LoadResourceFile(RESOURCE, FILE) then seedDefaults() end
     local raw = LoadResourceFile(RESOURCE, FILE)
     local ok, data = pcall(json.decode, raw or '')
     if not ok or type(data) ~= 'table' then return end
