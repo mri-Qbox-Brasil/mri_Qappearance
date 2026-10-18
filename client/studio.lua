@@ -594,8 +594,8 @@ local function studioBaseUrl()
 end
 
 -- A NUI tenta os mesmos caminhos HTTP do upload antes do evento latente.
--- Loopback funciona quando jogo e servidor estão no mesmo PC; o proxy atende
--- clientes remotos. A NUI conserva o callback como alternativa se ambos falharem.
+-- Loopback funciona quando jogo e servidor estão no mesmo PC; web_baseUrl só com certificado
+-- de verdade. Fora disso a NUI usa o callback studio_photo.
 local function studioPhotoBases()
     local bases = {}
     local resource = GetCurrentResourceName()
@@ -719,13 +719,12 @@ RegisterNUICallback('studio_start', function(data, cb)
     SetNuiFocus(true, true)
     setOtherHudsHidden(true)
 
-    -- Upload direto por HTTP (o evento latente não passa de ~300 KB/s). A NUI é
-    -- https e o CEF só deixa o fetch sair pra https ou pra localhost: proxy da
-    -- Cfx.re (web_baseUrl) ou servidor local. Senão, studio_save_batch por evento.
+    -- Upload direto por HTTP quando dá (mais rápido que o evento latente). A NUI é https e o CEF
+    -- só deixa o fetch sair pra https ou localhost: servidor local ou web_baseUrl com certificado.
+    -- Senão, studio_save_batch por evento (jogador fora do PC do servidor).
     local uploadToken, webBase = lib.callback.await('mri_Qappearance:studio:uploadToken', false)
     -- Candidatos em ordem de velocidade; a NUI testa (ping) e usa o primeiro que
-    -- responder. Localhost primeiro: com o servidor no mesmo PC vai direto, sem
-    -- a volta pela internet do proxy da Cfx.re.
+    -- responder. Localhost primeiro: com o servidor no mesmo PC vai direto.
     local uploadUrls = {}
     if uploadToken then
         local resource = GetCurrentResourceName()

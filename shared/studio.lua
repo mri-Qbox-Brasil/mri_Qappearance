@@ -30,8 +30,9 @@ Config.Studio = {
     -- segue vestindo e fotografando a próxima peça enquanto as anteriores sobem.
     MaxPendingUploads = 16,
 
-    -- bytes/s do evento latente de upload (uz_AutoShot usa 24 MB/s).
-    LatentRate = 24000000,
+    -- bytes/s do evento latente de upload, o mesmo do screencapture. Os 24 MB/s
+    -- do uz_AutoShot estouravam a conexão de quem não está no PC do servidor.
+    LatentRate = 5000000,
 
     -- Ritmo do lote, em frames do jogo por peça: SettleFrames depois de vestir
     -- (a peça aparecer) + HoldFrames com o código da peça na tela (a janela em

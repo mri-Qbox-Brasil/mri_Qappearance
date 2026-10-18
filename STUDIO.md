@@ -96,8 +96,8 @@ botão vira **Refazer normal**.
 | `IconSize` | `256` | Lado do ícone gravado |
 | `IconFormat` | `webp` | `webp` (~5x menor, envio mais rápido) ou `png`. O servidor serve os dois; foto png de lote antigo continua valendo |
 | `IconQuality` | `0.9` | Qualidade do webp |
-| `MaxPendingUploads` | `16` | Lotes de envio (até 8 fotos cada) em voo ao mesmo tempo |
-| `LatentRate` | `24000000` | bytes/s do upload |
+| `MaxPendingUploads` | `16` | Lotes de envio (até 8 fotos cada) em voo ao mesmo tempo por HTTP; por evento vai um de cada vez |
+| `LatentRate` | `5000000` | bytes/s do upload por evento (jogador fora do PC do servidor) |
 | `SettleFrames` | `1` | Frames depois de vestir, antes de mostrar o código da peça |
 | `HoldFrames` | `1` | Frames com o código da peça na tela (a janela de captura). 1 + 1 = 2 frames por peça |
 | `FrameCode` | canto sup. esq. | Posição e tamanho do código de frame (fração da tela) |

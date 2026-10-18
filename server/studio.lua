@@ -421,17 +421,8 @@ end
 
 math.randomseed(os.time() + GetGameTimer())
 
--- A web_baseUrl só aparece depois que o servidor autentica na Cfx.re.
-CreateThread(function()
-    Wait(15000)
-    local base = GetConvar('web_baseUrl', '')
-    print(base ~= ''
-        and ('[mri_Qappearance] estúdio: fotos sobem por HTTPS (%s)'):format(base)
-        or '[mri_Qappearance] estúdio: sem web_baseUrl (proxy HTTPS da Cfx.re) — fotos sobem por evento, bem mais lento')
-end)
-
--- Segundo retorno: web_baseUrl (proxy HTTPS da Cfx.re). A NUI é https e o CEF
--- bloqueia fetch pra http://ip:porta; só localhost passa.
+-- Segundo retorno: web_baseUrl, tentado por https (só responde com certificado de verdade; o proxy
+-- *.users.cfx.re acabou em 2026). A NUI é https e o CEF bloqueia fetch pra http://ip:porta; só localhost passa.
 lib.callback.register('mri_Qappearance:studio:uploadToken', function(source)
     if not isAllowed(source) then return nil end
     for token, owner in pairs(uploadTokens) do
