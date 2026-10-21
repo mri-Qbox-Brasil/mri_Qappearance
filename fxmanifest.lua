@@ -3,7 +3,7 @@ game "gta5"
 
 author "MRI BRASIL"
 description "An updated fork from illenium-appearance."
-version '1.11.1'
+version '1.11.2'
 
 lua54 "yes"
 

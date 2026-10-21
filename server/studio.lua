@@ -446,8 +446,9 @@ end)
 local function viaProxy(req)
     for name, value in pairs(req.headers or {}) do
         local key = tostring(name):lower()
+        -- Own nginx/cloudflared also sets x-forwarded-for but adds no CORS, so only the cfx host counts.
         if key == 'host' and tostring(value):find('users%.cfx%.re') then return true end
-        if key == 'x-forwarded-for' or key == 'x-cfx-source-ip' then return true end
+        if key == 'x-cfx-source-ip' then return true end
     end
     return false
 end
