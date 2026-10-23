@@ -530,21 +530,24 @@ local function studioLayouts()
 
     local out = {}
     local at = GetEntityCoords(cache.ped)
-    for gender, code in pairs({ male = 'm', female = 'f' }) do
-        local model = MODELS[gender]
-        if pcall(lib.requestModel, model, 5000) then
-            local ped = CreatePed(26, model, at.x, at.y, at.z - 50.0, 0.0, false, false)
-            SetModelAsNoLongerNeeded(model)
-            if ped and DoesEntityExist(ped) then
-                layoutOf(ped, code, out)
-                DeleteEntity(ped)
+    -- pcall: an error here left layoutsBusy stuck and every later call waiting forever.
+    local ok = pcall(function()
+        for gender, code in pairs({ male = 'm', female = 'f' }) do
+            local model = MODELS[gender]
+            if pcall(lib.requestModel, model, 5000) then
+                local ped = CreatePed(26, model, at.x, at.y, at.z - 50.0, 0.0, false, false)
+                SetModelAsNoLongerNeeded(model)
+                if ped and DoesEntityExist(ped) then
+                    layoutOf(ped, code, out)
+                    DeleteEntity(ped)
+                end
             end
         end
-    end
+    end)
 
-    layouts = out
+    if ok then layouts = out end
     layoutsBusy = false
-    return layouts
+    return out
 end
 
 ---Quantas cores (texturas) cada peça tem no jogo, pra galeria mostrar as que
@@ -691,8 +694,10 @@ RegisterNUICallback('studio_admin_close', function(_, cb)
 end)
 
 RegisterNUICallback('studio_get_state', function(_, cb)
+    -- Denied answers right away; the layouts (first call of the session spawns peds) only for who can use it.
+    if not allowed() then return cb({ allowed = false }) end
     cb({
-        allowed = allowed(),
+        allowed = true,
         running = booth ~= nil,
         index = studioIndex,
         layouts = studioLayouts(),

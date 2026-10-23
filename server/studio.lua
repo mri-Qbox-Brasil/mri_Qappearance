@@ -11,12 +11,35 @@ local INDEX_FILE = DIR .. '/index.json'
 local MAX_ICON_BYTES = 2 * 1024 * 1024
 
 local ALLOWED_NODES = { STUDIO.Ace, 'command', 'qadmin.master' }
+-- Master bypass of the mri_Qadmin HasPerms (Config.AceMaster): it shows the plugin to these too.
+local MASTER_ACES = { 'god', 'admin' }
 
--- Mesma checagem do HasPerms do mri_Qadmin.
+local function gradeOf(group)
+    return group and group.grade and (group.grade.level or group.grade)
+end
+
+-- Mesma checagem do HasPerms do mri_Qadmin (o plugin aparece pra quem ela aceita).
 local function isAllowed(source)
+    for _, ace in ipairs(MASTER_ACES) do
+        if IsPlayerAceAllowed(source, ace) then return true end
+    end
+
     local identifiers = GetPlayerIdentifiers(source)
     local player = exports.qbx_core:GetPlayer(source)
-    local citizenid = player and player.PlayerData.citizenid
+    local data = player and player.PlayerData
+    local principals = {}
+    if data then
+        principals[#principals + 1] = 'char:' .. data.citizenid
+        local job, gang = data.job, data.gang
+        if job and job.name and job.name ~= 'unemployed' then
+            principals[#principals + 1] = 'job.' .. job.name
+            principals[#principals + 1] = ('job.%s.%s'):format(job.name, gradeOf(job))
+        end
+        if gang and gang.name and gang.name ~= 'none' then
+            principals[#principals + 1] = 'gang.' .. gang.name
+            principals[#principals + 1] = ('gang.%s.%s'):format(gang.name, gradeOf(gang))
+        end
+    end
 
     for _, node in ipairs(ALLOWED_NODES) do
         if IsPlayerAceAllowed(source, node) then return true end
@@ -26,7 +49,9 @@ local function isAllowed(source)
             if IsPrincipalAceAllowed('identifier.' .. id, node) or IsPrincipalAceAllowed(id, node) then return true end
         end
 
-        if citizenid and IsPrincipalAceAllowed('char:' .. citizenid, node) then return true end
+        for i = 1, #principals do
+            if IsPrincipalAceAllowed(principals[i], node) then return true end
+        end
     end
 
     return false
