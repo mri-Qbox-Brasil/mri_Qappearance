@@ -249,7 +249,16 @@ RegisterNUICallback("appearance_zoom_absolute", function(zoomValue, cb)
     setZoom(zoomValue)
 end)
 
+local function canUseModel(model)
+    if type(model) ~= "string" or not IsModelInCdimage(model) or not IsModelAPed(model) then return false end
+    local conf = client.getConfig()
+    if conf and conf.anyModel then return true end
+    return lib.table.contains(client.getAppearanceSettings().ped.model.items, model)
+end
+
 RegisterNUICallback("appearance_change_model", function(model, cb)
+    if not canUseModel(model) then return cb({ invalid = true }) end
+
     local playerPed = client.setPlayerModel(model)
 
     SetEntityHeading(cache.ped, client.getHeading())

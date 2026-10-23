@@ -210,6 +210,8 @@ local function OpenClothingShop(isPedMenu)
         config.faceFeatures = true
         config.headOverlays = true
         config.tattoos = not Config.RCoreTattoosCompatibility and true
+        -- /pedmenu is given by an admin, so any game ped can be typed there.
+        config.anyModel = true
     end
     OpenShop(config, isPedMenu, "clothing")
 end

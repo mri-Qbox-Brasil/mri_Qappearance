@@ -14,7 +14,26 @@ Locales["pt-BR"] = {
         },
         ped = {
             title = "🚶‍♂️ Ped",
-            model = "Modelo"
+            model = "Modelo",
+            picker = {
+                title = "Escolher ped",
+                count = "%s modelos",
+                search = "Buscar por função ou modelo (ex.: policial, médico, a_m_y_business_01)",
+                empty = "Nenhum modelo encontrado.",
+                pick = "Escolher ped",
+                use_typed = "Usar \"%s\"",
+                close = "Fechar",
+                invalid = "Modelo de ped inválido: %s",
+                category = {
+                    all = "Todos",
+                    men = "Homens",
+                    women = "Mulheres",
+                    jobs = "Profissões",
+                    gangs = "Gangues",
+                    characters = "Personagens",
+                    animals = "Animais",
+                },
+            }
         },
         headBlend = {
             title = "🧬 Herança",

@@ -14,7 +14,26 @@ Locales["ar"] = {
         },
         ped = {
             title = "الشكل",
-            model = "النوع"
+            model = "النوع",
+            picker = {
+                title = "Choose ped",
+                count = "%s models",
+                search = "Search by role or model (e.g. cop, doctor, a_m_y_business_01)",
+                empty = "No model found.",
+                pick = "Choose ped",
+                use_typed = "Use \"%s\"",
+                close = "Close",
+                invalid = "Invalid ped model: %s",
+                category = {
+                    all = "All",
+                    men = "Men",
+                    women = "Women",
+                    jobs = "Jobs",
+                    gangs = "Gangs",
+                    characters = "Characters",
+                    animals = "Animals",
+                },
+            }
         },
         headBlend = {
             title = "شكلك",
